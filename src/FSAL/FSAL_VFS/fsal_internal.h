@@ -143,6 +143,7 @@ fsal_status_t VFSFSAL_setattrs(fsal_handle_t * p_filehandle, /* IN */
 
 fsal_status_t VFSFSAL_BuildExportContext(fsal_export_context_t * p_export_context,   /* OUT */
                                          fsal_path_t * p_export_path,   /* IN */
+                                         unsigned short exp_id,
                                          char *fs_specific_options /* IN */ );
 
 fsal_status_t VFSFSAL_create(fsal_handle_t * p_parent_directory_handle,      /* IN */

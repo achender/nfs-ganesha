@@ -151,7 +151,7 @@ typedef struct
 
   /* Warning: This string is not currently filled in or used. */
   char mount_point[FSAL_MAX_PATH_LEN];
-
+  unsigned short exp_id;
   int mount_root_fd;
   gpfsfsal_handle_t mount_root_handle;
   unsigned int fsid[2];

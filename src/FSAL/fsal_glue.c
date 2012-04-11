@@ -81,10 +81,11 @@ fsal_status_t FSAL_setattrs(fsal_handle_t * p_filehandle,       /* IN */
 
 fsal_status_t FSAL_BuildExportContext(fsal_export_context_t * p_export_context, /* OUT */
                                       fsal_path_t * p_export_path,      /* IN */
+                                      unsigned short exp_id,
                                       char *fs_specific_options /* IN */ )
 {
   return fsal_functions.fsal_buildexportcontext(p_export_context, p_export_path,
-                                                fs_specific_options);
+                                                exp_id, fs_specific_options);
 }
 
 fsal_status_t FSAL_CleanUpExportContext(fsal_export_context_t * p_export_context) /* IN */

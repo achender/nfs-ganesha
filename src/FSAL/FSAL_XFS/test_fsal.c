@@ -263,7 +263,7 @@ int main(int argc, char **argv)
   uid = getuid();
   LogTest("uid = %d", uid);
 
-  st = FSAL_BuildExportContext(&export_ctx, NULL, NULL);
+  st = FSAL_BuildExportContext(&export_ctx, NULL, 0, NULL);
   if(FSAL_IS_ERROR(st))
     LogError(COMPONENT_FSAL, ERR_FSAL, st.major, st.minor);
 

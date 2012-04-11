@@ -206,7 +206,7 @@ void *mfsl_async_synclet_refresher_thread(void *Arg)
 #endif
 
   /* Init FSAL root fsal_op_context */
-  if(FSAL_IS_ERROR(FSAL_BuildExportContext(&fsal_export_context, NULL, NULL)))
+  if(FSAL_IS_ERROR(FSAL_BuildExportContext(&fsal_export_context, NULL, 0, NULL)))
     {
       /* Failed init */
       LogMajor(COMPONENT_MFSL,"MFSL Synclet context could not build export context, exiting...");
@@ -268,7 +268,7 @@ void *mfsl_async_synclet_thread(void *Arg)
 #endif
 
   /* Init FSAL root fsal_op_context */
-  if(FSAL_IS_ERROR(FSAL_BuildExportContext(&fsal_export_context, NULL, NULL)))
+  if(FSAL_IS_ERROR(FSAL_BuildExportContext(&fsal_export_context, NULL, 0, NULL)))
     {
       /* Failed init */
       LogMajor(COMPONENT_MFSL,"MFSL Synclet context could not build export context, exiting...");

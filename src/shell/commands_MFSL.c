@@ -159,7 +159,7 @@ int Init_Thread_MFSL(FILE * output, cmdmfsl_thr_info_t * context, int flag_v)
   struct passwd *pw_struct;
 
   /* for the moment, create export context for root fileset */
-  st = FSAL_BuildExportContext(&context->exp_context, NULL, NULL);
+  st = FSAL_BuildExportContext(&context->exp_context, NULL, 0, NULL);
 
   if(FSAL_IS_ERROR(st))
     {

@@ -161,7 +161,7 @@ void *nfs_file_content_flush_thread(void *flush_data_arg)
 
           strncpy( export_context.mount_point,
 		   pexport->dirname, FSAL_MAX_PATH_LEN -1 ) ;
-          fsal_status = FSAL_BuildExportContext( &export_context, &export_path, NULL ) ;
+          fsal_status = FSAL_BuildExportContext( &export_context, &export_path, pexport->id, NULL ) ;
           if(FSAL_IS_ERROR(fsal_status))
             LogError(COMPONENT_MAIN, ERR_FSAL, fsal_status.major, fsal_status.minor);
 #endif

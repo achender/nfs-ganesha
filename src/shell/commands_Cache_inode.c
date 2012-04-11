@@ -195,7 +195,7 @@ static int InitThread(cmdCacheInode_thr_info_t * thr_info)
   struct passwd *pw_struct;
 
   /* for the moment, create export context for root fileset */
-  st = FSAL_BuildExportContext(&thr_info->exp_context, NULL, NULL);
+  st = FSAL_BuildExportContext(&thr_info->exp_context, NULL, 0, NULL);
 
   /* initialize FSAL credential for this thread */
 

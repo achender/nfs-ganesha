@@ -58,6 +58,7 @@
 fsal_status_t CEPHFSAL_BuildExportContext(
                        fsal_export_context_t * export_context,
                        fsal_path_t * export_path,
+                       unsigned short exp_id,
                        char *fs_specific_options)
 {
     cephfsal_export_context_t* ceph_export_context =

@@ -650,7 +650,7 @@ fsal_status_t MFSL_RefreshContext(mfsl_context_t * pcontext,
 
   if(pcontext->pool_dirs.pa_constructor == NULL || pcontext->pool_files.pa_constructor == NULL)
     {
-      status = FSAL_BuildExportContext(&fsal_export_context, NULL, NULL);
+      status = FSAL_BuildExportContext(&fsal_export_context, NULL, 0, NULL);
       if(FSAL_IS_ERROR(status))
         return status;
 

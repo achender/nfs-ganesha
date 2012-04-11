@@ -486,6 +486,7 @@ fsal_status_t FSAL_get_cookieverf(fsal_handle_t * handle,
 
 fsal_status_t FSAL_BuildExportContext(fsal_export_context_t * p_export_context, /* OUT */
                                       fsal_path_t * p_export_path,      /* IN */
+                                      unsigned short exp_id,
                                       char *fs_specific_options /* IN */
     );
 
@@ -1046,6 +1047,7 @@ typedef struct fsal_functions__
   /* FSAL__BuildExportContext */
   fsal_status_t(*fsal_buildexportcontext) (fsal_export_context_t * p_export_context,    /* OUT */
                                            fsal_path_t * p_export_path, /* IN */
+                                           unsigned short exp_id,
                                            char *fs_specific_options /* IN */ );
 
   /* FSAL_CleanUpExportContent */

@@ -328,7 +328,7 @@ int InitNFSClient(cmdnfs_thr_info_t * p_thr_info)
     return 0;
 
   /* for the moment, create export context for root fileset */
-  st = FSAL_BuildExportContext(&p_thr_info->exp_context, NULL, NULL);
+  st = FSAL_BuildExportContext(&p_thr_info->exp_context, NULL, 0, NULL);
 
   if(FSAL_IS_ERROR(st))
     {

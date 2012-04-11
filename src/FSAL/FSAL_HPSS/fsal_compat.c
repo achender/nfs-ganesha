@@ -48,10 +48,11 @@ fsal_status_t WRAP_HPSSFSAL_setattrs(fsal_handle_t * p_filehandle,      /* IN */
 
 fsal_status_t WRAP_HPSSFSAL_BuildExportContext(fsal_export_context_t * p_export_context,        /* OUT */
                                                fsal_path_t * p_export_path,     /* IN */
+                                               unsigned short exp_id,
                                                char *fs_specific_options /* IN */ )
 {
   return HPSSFSAL_BuildExportContext((hpssfsal_export_context_t *) p_export_context,
-                                     p_export_path, fs_specific_options);
+                                     p_export_path, exp_id, fs_specific_options);
 }
 
 fsal_status_t WRAP_HPSSFSAL_CleanUpExportContext(fsal_export_context_t * p_export_context)

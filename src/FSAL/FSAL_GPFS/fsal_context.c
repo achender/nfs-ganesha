@@ -31,6 +31,7 @@
  */
 fsal_status_t GPFSFSAL_BuildExportContext(fsal_export_context_t *export_context, /* OUT */
                                       fsal_path_t * p_export_path,      /* IN */
+                                      unsigned short exp_id,
                                       char *fs_specific_options /* IN */
     )
 {
@@ -119,7 +120,7 @@ fsal_status_t GPFSFSAL_BuildExportContext(fsal_export_context_t *export_context,
                status.minor);
       ReturnCode(ERR_FSAL_INVAL, 0);
     }
-
+  p_export_context->exp_id = exp_id;
   Return(ERR_FSAL_NO_ERROR, 0, INDEX_FSAL_BuildExportContext);
 }
 

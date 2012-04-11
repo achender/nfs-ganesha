@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
       if(FSAL_IS_ERROR
          (fsal_status =
           FSAL_BuildExportContext(&fsal_export_context, &export_path,
-                                  pexport->FS_specific)))
+                                  pexport->id, pexport->FS_specific)))
         {
           fprintf(stderr, "Error in FSAL_BuildExportContext, major=%u, minor=%u\n",
                   fsal_status.major, fsal_status.minor);

@@ -82,7 +82,7 @@ cache_content_client_t recover_datacache_client;
 #define CONF_LABEL_EXPORT "EXPORT"
 
 /* Labels in the export file */
-#define CONF_EXPORT_ID                 "Export_id"
+#define CONF_EXPORT_ID                 "Export_Id"
 #define CONF_EXPORT_PATH               "Path"
 #define CONF_EXPORT_ROOT               "Root_Access"
 #define CONF_EXPORT_ACCESS             "Access"
@@ -2991,7 +2991,9 @@ int nfs_export_create_root_entry(exportlist_t * pexportlist, hash_table_t * ht)
           /* inits context for the current export entry */
 
           fsal_status =
-              FSAL_BuildExportContext(&pcurrent->FS_export_context, &exportpath_fsal,
+              FSAL_BuildExportContext(&pcurrent->FS_export_context,
+                                      &exportpath_fsal,
+                                      pcurrent->id,
                                       pcurrent->FS_specific);
 
           if(FSAL_IS_ERROR(fsal_status))

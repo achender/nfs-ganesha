@@ -99,6 +99,7 @@ fsal_status_t HPSSFSAL_setattrs(hpssfsal_handle_t * p_filehandle,       /* IN */
 
 fsal_status_t HPSSFSAL_BuildExportContext(hpssfsal_export_context_t * p_export_context, /* OUT */
                                           fsal_path_t * p_export_path,  /* IN */
+                                          unsigned short exp_id,
                                           char *fs_specific_options /* IN */ );
 
 fsal_status_t HPSSFSAL_InitClientContext(hpssfsal_op_context_t * p_thr_context);

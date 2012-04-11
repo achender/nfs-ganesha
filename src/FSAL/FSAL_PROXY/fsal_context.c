@@ -122,6 +122,7 @@ static int Getsubopt(char **optionp, const char *const *tokens, char **valuep)
  */
 fsal_status_t PROXYFSAL_BuildExportContext(fsal_export_context_t * p_export_context,       /* OUT */
                                            fsal_path_t * p_export_path, /* IN */
+                                           unsigned short exp_id,
                                            char *fs_specific_options    /* IN */
     )
 {

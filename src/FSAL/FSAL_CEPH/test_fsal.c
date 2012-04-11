@@ -271,7 +271,7 @@ int main(int argc, char **argv)
   uid = getuid();
   printf("uid = %d\n", uid);
 
-  st = FSAL_BuildExportContext(&export_ctx, NULL, NULL);
+  st = FSAL_BuildExportContext(&export_ctx, NULL, 0, NULL);
   if(FSAL_IS_ERROR(st))
     DisplayErrorJd(log_desc, ERR_FSAL, st.major, st.minor);
 

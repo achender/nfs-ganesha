@@ -222,6 +222,7 @@ fsal_status_t VFSFSAL_InitClientContext(fsal_op_context_t * p_context)
 
 fsal_status_t VFSFSAL_GetClientContext(fsal_op_context_t * thr_context,    /* IN/OUT  */
                                        fsal_export_context_t * p_export_context,     /* IN */
+                                       struct svc_req *ptr_req,
                                        fsal_uid_t uid,  /* IN */
                                        fsal_gid_t gid,  /* IN */
                                        fsal_gid_t * alt_groups, /* IN */

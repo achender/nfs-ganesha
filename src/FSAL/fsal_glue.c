@@ -308,7 +308,7 @@ fsal_status_t FSAL_GetClientContext(fsal_op_context_t * p_thr_context,  /* IN/OU
                                     fsal_count_t nb_alt_groups /* IN */ )
 {
   return fsal_functions.fsal_getclientcontext(p_thr_context, p_export_context,
-					      uid, gid,
+					      ptr_req, uid, gid,
 					      alt_groups, nb_alt_groups);
 }
 

@@ -3006,9 +3006,9 @@ int nfs_export_create_root_entry(exportlist_t * pexportlist, hash_table_t * ht)
 
           /* get the related client context */
 #ifdef _USE_SHARED_FSAL
-          fsal_status = FSAL_GetClientContext(&context[pcurrent->fsalid], &pcurrent->FS_export_context, 0, 0, NULL, 0 ) ;
+          fsal_status = FSAL_GetClientContext(&context[pcurrent->fsalid], &pcurrent->FS_export_context, NULL, 0, 0, NULL, 0 ) ;
 #else
-          fsal_status = FSAL_GetClientContext(&context, &pcurrent->FS_export_context, 0, 0, NULL, 0 ) ;
+          fsal_status = FSAL_GetClientContext(&context, &pcurrent->FS_export_context, NULL, 0, 0, NULL, 0 ) ;
 #endif
 
           if(FSAL_IS_ERROR(fsal_status))

@@ -73,7 +73,7 @@ int _9p_tools_get_fsal_op_context_by_uid( u32 uid, _9p_fid_t * pfid )
 
   fsal_status = FSAL_GetClientContext( &pfid->fsal_op_context,
                                        &pfid->pexport->FS_export_context,
-                                       uid, gid, NULL, 0 ) ;
+                                       NULL, uid, gid, NULL, 0 ) ;
   if( FSAL_IS_ERROR( fsal_status ) )
    return -fsal_status.major ; 
 

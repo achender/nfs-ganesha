@@ -350,6 +350,7 @@ int nfs_build_fsal_context(struct svc_req *ptr_req,
   /* Build the credentials */
   fsal_status = FSAL_GetClientContext(pcontext,
                                       &pexport->FS_export_context,
+                                      ptr_req,
                                       user_credentials->caller_uid, user_credentials->caller_gid,
                                       user_credentials->caller_garray, user_credentials->caller_glen);
 

@@ -523,6 +523,7 @@ void nfs_client_id_expire(nfs_client_id_t *client_record)
           /* construct the fsal context based on the export and root credential */
 	  fsal_status = FSAL_GetClientContext(&fsal_context,
                                       &plock_state->state_pexport->FS_export_context,
+                                      NULL,
                                       0,
                                       0,
                                       NULL,

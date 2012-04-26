@@ -271,7 +271,7 @@ int main(int argc, char **argv)
   if(FSAL_IS_ERROR(st))
     LogError(COMPONENT_STDOUT, ERR_FSAL, st.major, st.minor);
 
-  st = FSAL_GetClientContext(&op_ctx, &export_ctx, uid, -1, NULL, 0);
+  st = FSAL_GetClientContext(&op_ctx, &export_ctx, NULL, uid, -1, NULL, 0);
 
   if(FSAL_IS_ERROR(st))
     LogError(COMPONENT_STDOUT, ERR_FSAL, st.major, st.minor);

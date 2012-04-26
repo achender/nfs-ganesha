@@ -1060,6 +1060,7 @@ typedef struct fsal_functions__
   /* FSAL_GetClientContext */
   fsal_status_t(*fsal_getclientcontext) (fsal_op_context_t * p_thr_context,     /* IN/OUT  */
                                          fsal_export_context_t * p_export_context,      /* IN */
+                                         sockaddr_t *caller_addr,
                                          fsal_uid_t uid,        /* IN */
                                          fsal_gid_t gid,        /* IN */
                                          fsal_gid_t * alt_groups,       /* IN */

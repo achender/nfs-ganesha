@@ -210,6 +210,7 @@ fsal_status_t FSAL_InitClientContext(fsal_op_context_t * p_thr_context)
 
 fsal_status_t FSAL_GetClientContext(fsal_op_context_t * p_thr_context,  /* IN/OUT  */
                                     fsal_export_context_t * p_export_context,   /* IN */
+                                    sockaddr_t *caller_addr,
                                     fsal_uid_t uid,     /* IN */
                                     fsal_gid_t gid,     /* IN */
                                     fsal_gid_t * alt_groups,    /* IN */

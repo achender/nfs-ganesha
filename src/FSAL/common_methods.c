@@ -78,6 +78,11 @@ fsal_status_t COMMON_GetClientContext(fsal_op_context_t * p_thr_context,  /* IN/
   p_thr_context->credential.user = uid;
   p_thr_context->credential.group = gid;
 
+  if (caller_addr != NULL) {
+     memcpy(&p_thr_context->credential.caller_addr, caller_addr,
+         sizeof(p_thr_context->credential.caller_addr));
+  }
+
   if(ng > FSAL_NGROUPS_MAX) /* this artificially truncates the group list ! */
 	  ng = FSAL_NGROUPS_MAX;
   p_thr_context->credential.nbgroups = ng;

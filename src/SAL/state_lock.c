@@ -2658,6 +2658,7 @@ state_status_t state_nlm_notify(state_nsm_client_t   * pnsmclient,
       /* construct the fsal context based on the export and root credential */
       fsal_status = FSAL_GetClientContext(&fsal_context,
                                           &pexport->FS_export_context,
+                                          NULL,
                                           0,
                                           0,
                                           NULL,

@@ -76,6 +76,7 @@ typedef unsigned long long int u_int64_t;
 #include "config_parsing.h"
 #include "err_fsal.h"
 #include "RW_Lock.h"
+#include "rpc.h"
 
 /* Forward declarations */
 typedef struct fsal_staticfsinfo_t fsal_staticfsinfo_t;
@@ -246,6 +247,7 @@ struct user_credentials {
   uid_t user;
   gid_t group;
   int nbgroups;
+  sockaddr_t caller_addr;
   gid_t alt_groups[FSAL_NGROUPS_MAX];
 };
 

@@ -654,7 +654,7 @@ fsal_status_t MFSL_RefreshContext(mfsl_context_t * pcontext,
       if(FSAL_IS_ERROR(status))
         return status;
 
-      status = FSAL_GetClientContext(pfsal_context, &fsal_export_context, 0, 0, NULL, 0);
+      status = FSAL_GetClientContext(pfsal_context, &fsal_export_context, NULL, 0, 0, NULL, 0);
       if(FSAL_IS_ERROR(status))
         return status;
     }

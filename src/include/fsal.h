@@ -42,6 +42,7 @@
 #endif                          /* HAVE_CONFIG_H */
 
 #include <stddef.h>
+#include "rpc.h"
 
 /**
  * BUILD_BUG_ON - break compile if a condition is true.
@@ -496,6 +497,7 @@ fsal_status_t FSAL_InitClientContext(fsal_op_context_t * p_thr_context  /* OUT  
 
 fsal_status_t FSAL_GetClientContext(fsal_op_context_t * p_thr_context,  /* IN/OUT  */
                                     fsal_export_context_t * p_export_context,   /* IN */
+                                    sockaddr_t *caller_addr,
                                     fsal_uid_t uid,     /* IN */
                                     fsal_gid_t gid,     /* IN */
                                     fsal_gid_t * alt_groups,    /* IN */
@@ -1058,6 +1060,7 @@ typedef struct fsal_functions__
   /* FSAL_GetClientContext */
   fsal_status_t(*fsal_getclientcontext) (fsal_op_context_t * p_thr_context,     /* IN/OUT  */
                                          fsal_export_context_t * p_export_context,      /* IN */
+                                         sockaddr_t *caller_addr,
                                          fsal_uid_t uid,        /* IN */
                                          fsal_gid_t gid,        /* IN */
                                          fsal_gid_t * alt_groups,       /* IN */

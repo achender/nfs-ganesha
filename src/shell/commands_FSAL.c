@@ -393,7 +393,7 @@ int Init_Thread_Context(FILE * output, cmdfsal_thr_info_t * context, int flag_v)
       return errno;
     }
 
-  st = FSAL_GetClientContext(&context->context, &context->exp_context,
+  st = FSAL_GetClientContext(&context->context, &context->exp_context, NULL,
                              uid, pw_struct->pw_gid, NULL, 0);
 
   if(FSAL_IS_ERROR(st))
@@ -1987,7 +1987,7 @@ int fn_fsal_su(int argc,        /* IN : number of args in argv */
       fprintf(output, "\n");
     }
 
-  st = FSAL_GetClientContext(&context->context, &context->exp_context,
+  st = FSAL_GetClientContext(&context->context, &context->exp_context, NULL,
                              pw_struct->pw_uid, pw_struct->pw_gid, groups_tab, nb_grp);
 
   if(FSAL_IS_ERROR(st))

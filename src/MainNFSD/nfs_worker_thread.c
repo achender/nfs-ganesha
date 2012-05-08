@@ -688,6 +688,7 @@ static void nfs_rpc_execute(nfs_request_data_t * preqnfs,
   exportlist_client_entry_t related_client;
   struct user_cred user_credentials;
   int   update_per_share_stats;
+  sockaddr_t sock;
 
   fsal_op_context_t * pfsal_op_ctx = NULL ;
 
@@ -1344,12 +1345,16 @@ static void nfs_rpc_execute(nfs_request_data_t * preqnfs,
       /* Do the authentication stuff, if needed */
       if(pworker_data->pfuncdesc->dispatch_behaviour & NEEDS_CRED)
         {
+          memset(&sock, 0, sizeof(sock));
+          copy_xprt_addr(&sock, ptr_req->rq_xprt);
+
 	  /* Swap the anonymous uid/gid if the user should be anonymous */
           if(nfs_check_anon(&related_client, pexport, &user_credentials) == FALSE
 	     || nfs_build_fsal_context(ptr_req,
                                        pexport,
 				       &pworker_data->thread_fsal_context,
-                                       &user_credentials) == FALSE)
+                                       &user_credentials,
+                                       &sock) == FALSE)
             {
               LogInfo(COMPONENT_DISPATCH,
                       "authentication failed, rejecting client");

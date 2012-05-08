@@ -4233,6 +4233,7 @@ int nfs4_MakeCred(compound_data_t * data)
   exportlist_client_entry_t related_client;
   nfs_worker_data_t *pworker = NULL;
   struct user_cred user_credentials;
+  sockaddr_t sock;
 
   pworker = (nfs_worker_data_t *) data->pclient->pworker;
 
@@ -4256,10 +4257,14 @@ int nfs4_MakeCred(compound_data_t * data)
      == FALSE)
     return NFS4ERR_WRONGSEC;
 
+  memset(&sock, 0, sizeof(sock));
+  copy_xprt_addr(&sock, data->reqp->rq_xprt);
+
   if(nfs_build_fsal_context(data->reqp,
                             data->pexport,
                             data->pcontext,
-                            &user_credentials) == FALSE)
+                            &user_credentials,
+                            &sock) == FALSE)
     return NFS4ERR_WRONGSEC;
 
   return NFS4_OK;

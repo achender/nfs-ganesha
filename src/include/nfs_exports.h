@@ -364,7 +364,8 @@ int nfs_check_anon(exportlist_client_entry_t * pexport_client,
 int nfs_build_fsal_context(struct svc_req *ptr_req,
                            exportlist_t * pexport,
                            fsal_op_context_t * pcontext,
-                           struct user_cred *user_credentials);
+                           struct user_cred *user_credentials,
+                           sockaddr_t *caller_addr);
 int get_req_uid_gid(struct svc_req *ptr_req,
                     exportlist_t * pexport,
                     struct user_cred *user_credentials);

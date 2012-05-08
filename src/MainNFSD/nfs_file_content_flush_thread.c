@@ -144,7 +144,7 @@ void *nfs_file_content_flush_thread(void *flush_data_arg)
 
           fsal_status =
               FSAL_GetClientContext(&(fsal_context[p_flush_data->thread_index]),
-                                    &pexport->FS_export_context, 0, -1, NULL, 0);
+                                    &pexport->FS_export_context, NULL, 0, -1, NULL, 0);
 
           if(FSAL_IS_ERROR(fsal_status))
             LogError(COMPONENT_MAIN, ERR_FSAL, fsal_status.major, fsal_status.minor);

@@ -522,6 +522,8 @@ bool_t nlm_block_data_to_fsal_context(state_block_data_t * block_data,
   /* Build the credentials */
   fsal_status = FSAL_GetClientContext(fsal_context,
                                       &pexport->FS_export_context,
+                                      &sbd_lock_entry->sle_power->so_owner.so_nlm_owner.
+                                        so_client->slc_nsm_client->ssc_client_addr,
                                       block_data->sbd_credential.user,
                                       block_data->sbd_credential.group,
                                       block_data->sbd_credential.alt_groups,

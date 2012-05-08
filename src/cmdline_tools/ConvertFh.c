@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
         }
 
       fsal_status = FSAL_GetClientContext(&fsal_op_context,
-                                          &fsal_export_context, 0, 0, NULL, 0);
+                                          &fsal_export_context, NULL, 0, 0, NULL, 0);
 
       if(FSAL_IS_ERROR(fsal_status))
         {

@@ -111,6 +111,7 @@ fsal_status_t CEPHFSAL_InitClientContext(
 fsal_status_t CEPHFSAL_GetClientContext(
      fsal_op_context_t * extcontext,
      fsal_export_context_t * extexport_context,
+     sockaddr_t *caller_addr,
      fsal_uid_t uid,
      fsal_gid_t gid,
      fsal_gid_t * alt_groups,

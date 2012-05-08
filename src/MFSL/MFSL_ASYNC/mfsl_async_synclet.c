@@ -221,7 +221,7 @@ void *mfsl_async_synclet_refresher_thread(void *Arg)
     }
 
   if(FSAL_IS_ERROR(FSAL_GetClientContext(&fsal_context,
-                                         &fsal_export_context, 0, 0, NULL, 0)))
+                                         &fsal_export_context, NULL, 0, 0, NULL, 0)))
     {
       /* Failed init */
       LogMajor(COMPONENT_MFSL,"could not build client context, exiting...");
@@ -283,7 +283,7 @@ void *mfsl_async_synclet_thread(void *Arg)
     }
 
   if(FSAL_IS_ERROR(FSAL_GetClientContext(&synclet_data[index].root_fsal_context,
-                                         &fsal_export_context, 0, 0, NULL, 0)))
+                                         &fsal_export_context, NULL, 0, 0, NULL, 0)))
     {
       /* Failed init */
       LogMajor(COMPONENT_MFSL,"MFSL Synclet context could not build client context, exiting...");

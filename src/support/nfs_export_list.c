@@ -343,13 +343,17 @@ int nfs_build_fsal_context(struct svc_req *ptr_req,
                            struct user_cred *user_credentials)
 {
   fsal_status_t fsal_status;
+  sockaddr_t sock;
 
   if (user_credentials == NULL)
     return FALSE;
 
+  memset(&sock, 0, sizeof(sock));
+  copy_xprt_addr(&sock, ptr_req->rq_xprt);
+
   /* Build the credentials */
   fsal_status = FSAL_GetClientContext(pcontext,
-                                      &pexport->FS_export_context,
+                                      &pexport->FS_export_context, &sock,
                                       user_credentials->caller_uid, user_credentials->caller_gid,
                                       user_credentials->caller_garray, user_credentials->caller_glen);
 

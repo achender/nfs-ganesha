@@ -58,8 +58,6 @@
 #include <pthread.h>
 #include <string.h>
 
-#include "gpfs.h"
-
 #ifdef _USE_NFS4_ACL
 #define ACL_DEBUG_BUF_SIZE 256
 #endif                          /* _USE_NFS4_ACL */

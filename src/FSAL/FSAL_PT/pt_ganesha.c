@@ -1002,3 +1002,34 @@ void ptfsal_set_fsi_handle_data(fsal_op_context_t * p_context, fsi_handle_struct
   //strncpy(handler->client_address, client_ip, 256);  
 }
 
+// ptfsal_convert_log_level()
+// Given a ganesha log level, convert
+// it to the equivelent FSI log level
+int ptfsal_convert_log_level(log_levels_t log_level){
+  switch(log_level) {
+    case NIV_NULL:
+    case NIV_FATAL:
+      return FSI_FATAL;
+
+    case NIV_MAJ:
+    case NIV_CRIT:
+      return FSI_ERR;
+
+    case NIV_WARN:
+      return FSI_NOTICE;
+
+    case NIV_EVENT:
+      return FSI_STAT;
+
+    case NIV_INFO:
+      return FSI_INFO;
+
+    case NIV_DEBUG:
+    case NIV_MID_DEBUG:
+    case NIV_FULL_DEBUG:                     
+    case NB_LOG_LEVEL:
+    default:
+      return FSI_DEBUG;
+  }
+}
+

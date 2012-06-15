@@ -96,11 +96,12 @@ PTFSAL_Init(fsal_parameter_t * init_info    /* IN */)
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_Init);
 
   /* These are initial values until we get our own Ganesha component */
-  g_ptfsal_debug_level = FSI_NOTICE;   // TODO get our own mechanism to set
-                                      //  or have these settable by Ganesha
-                                      //  debug control
+  g_ptfsal_debug_level =
+     ptfsal_convert_log_level(LogComponents[COMPONENT_FSAL].comp_log_level);
+
   g_ptfsal_comp_num = (int) COMPONENT_FSAL;  // till we get our own comp
-  g_ptfsal_comp_level = (int) NIV_INFO;      // only has meaning if syslog
+  g_ptfsal_comp_level = LogComponents[COMPONENT_FSAL].comp_log_level;
+                                             // only has meaning if syslog
                                              // used, using g_ptfsal_debug_level
                                              // to control instead, 
 

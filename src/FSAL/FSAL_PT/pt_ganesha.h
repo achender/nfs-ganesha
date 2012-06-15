@@ -207,4 +207,6 @@ void ptfsal_print_handle(char * handle);
 mode_t fsal_type2unix(int fsal_type);
 
 void ptfsal_set_fsi_handle_data(fsal_op_context_t * p_context, fsi_handle_struct * handler);
+int ptfsal_convert_log_level(log_levels_t log_level);
+
 #endif // ifndef __PT_GANESHA_H__

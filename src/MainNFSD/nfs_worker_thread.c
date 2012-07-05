@@ -1320,7 +1320,8 @@ static void nfs_rpc_execute(request_data_t *preq,
                    "nfs_export_check_access() reported PERMISSION GRANTED.");
 
       /* Do the authentication stuff, if needed */
-      if(pworker_data->pfuncdesc->dispatch_behaviour & NEEDS_CRED)
+      if(req->rq_prog != nfs_param.core_param.program[P_MNT] &&
+         pworker_data->pfuncdesc->dispatch_behaviour & NEEDS_CRED)
         {
           /* Swap the anonymous uid/gid if the user should be anonymous */
           if(nfs_check_anon(&related_client, pexport, &user_credentials) == FALSE

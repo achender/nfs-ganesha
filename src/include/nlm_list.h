@@ -29,6 +29,7 @@
 #define _NLM_LIST_H
 
 #include <stddef.h>
+#include <assert.h>
 
 struct glist_head
 {
@@ -53,6 +54,10 @@ static inline void init_glist(struct glist_head *head) /* XXX glist_init? */
 static inline void __glist_add(struct glist_head *left, struct glist_head *right,
                                struct glist_head *new)
 {
+  /* TODO: placing asserts to track a SEGSEGV; can be removed later. */
+  assert(left);
+  assert(right);
+  assert(new);
   new->prev = left;
   new->next = right;
   left->next = new;
@@ -104,6 +109,10 @@ static inline void glist_add_list_tail(struct glist_head *list, struct glist_hea
       return;
     }
 
+  /* TODO: placing asserts to track potential bugs ; can be removed later. */
+  assert(first);
+  assert(last);
+  assert(list);
   first->prev = list->prev;
   list->prev->next = first;
 

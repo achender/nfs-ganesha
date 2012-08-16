@@ -171,6 +171,7 @@ int ccl_up_mutex_lock( pthread_mutex_t * pmutex)
   } else {
     FSI_TRACE(FSI_DEBUG, "lock 0x%lx acuired", (unsigned int) pmutex);
   }
+  return rc;
 }
 
 int ccl_up_mutex_unlock( pthread_mutex_t * pmutex)
@@ -184,6 +185,7 @@ int ccl_up_mutex_unlock( pthread_mutex_t * pmutex)
     FSI_TRACE(FSI_DEBUG, "successfully unlocked 0x%lx ", 
               (unsigned int) pmutex);
   }
+  return rc;
 }
 
 unsigned long ccl_up_self()

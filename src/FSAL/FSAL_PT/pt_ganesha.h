@@ -48,6 +48,10 @@
 #define PTFSAL_OLDEST_HANDLE_TIMEOUT_SEC  30   // Timeout for opened handle 
                                                // to be considered old in
                                                // close_on_open path
+#define PTFSAL_POLLING_HANDLE_LOOP_GAP_USEC  500  /* Sleep time to allow 
+                                                     other close to happend
+                                                     in between background
+                                                     polling process */
 extern int             debug_flag;
 extern struct          fsi_handle_cache_t  g_fsi_name_handle_cache;
 extern pthread_mutex_t g_fsi_name_handle_mutex;
@@ -211,9 +215,9 @@ void *ptfsal_closeHandle_listener_thread(void *args);
 
 int ptfsal_find_oldest_handle(void);
 
-void ptfsal_update_handle_nfs_state(int handle_index, enum e_nfs_state state);
+int ptfsal_update_handle_nfs_state(int handle_index, enum e_nfs_state state);
 
-int ptfsal_implicit_close_for_nfs(int handle_index_to_close);
+int ptfsal_explicit_close_for_nfs(int handle_index_to_close);
 
 void *ptfsal_polling_closeHandler_thread(void *args);
 #endif // ifndef __PT_GANESHA_H__

@@ -62,7 +62,7 @@ pthread_mutex_t g_parseio_mutex; // only one thread can parse an io at a time
 pthread_mutex_t g_transid_mutex; 
 pthread_mutex_t g_non_io_mutex;
 pthread_mutex_t g_close_mutex;
-pthread_t g_pthread_closehandle_lisetner;
+pthread_t g_pthread_closehandle_listener;
 pthread_t g_pthread_polling_closehandler;
 
 /* Following are for FSI_TRACE control and mapping to Ganesha Trace Facility */
@@ -70,8 +70,7 @@ int g_ptfsal_debug_level;
 int g_ptfsal_comp_num;
 int g_ptfsal_comp_level;
 
-static int ptfsal_closeHandle_listener_thread_init(void);
-static int ptfsal_polling_closeHandler_thread_init(void);
+static int ptfsal_pt_thread_init(void);
 
 /**
  * FSAL_Init : Initializes the FileSystem Abstraction Layer.
@@ -138,19 +137,9 @@ PTFSAL_Init(fsal_parameter_t * init_info    /* IN */)
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_Init);
   }
 
-  FSI_TRACE(FSI_NOTICE, "About to call "
-            "ptfsal_closeHandle_listener_thread_init");
-  if (ptfsal_closeHandle_listener_thread_init() == -1) {
-    FSI_TRACE(FSI_ERR, "ptfsal_closeHandle_listener_thread_init "
-              "returned rc = -1");
-    Return(ERR_FSAL_FAULT, 1, INDEX_FSAL_Init);
-  }
-
-  FSI_TRACE(FSI_NOTICE, "About to call "
-            "ptfsal_polling_closeHandler_thread_init");
-  if (ptfsal_polling_closeHandler_thread_init() == -1) {
-    FSI_TRACE(FSI_ERR, "ptfsal_polling_closeHandler_thread_init "
-              "returned rc = -1");
+  rc = ptfsal_pt_thread_init();
+  if (rc != 0) {
+    FSI_TRACE(FSI_FATAL, "Failed to create PT ganesha threads rc = %d", rc);
     Return(ERR_FSAL_FAULT, 1, INDEX_FSAL_Init);
   }
 
@@ -195,39 +184,18 @@ unsigned long ccl_up_self()
    return my_tid;
 }
 
+
 static int
-ptfsal_closeHandle_listener_thread_init(void)
+ptfsal_pt_thread_init(void)
 {
    pthread_attr_t attr_thr;
    int            rc;
 
-   /* Init the thread in charge of renewing the client id */
-   /* Init for thread parameter (mostly for scheduling) */
-   pthread_attr_init(&attr_thr);
-
-   rc = pthread_create(&g_pthread_closehandle_lisetner,
-                       &attr_thr,
-                       ptfsal_closeHandle_listener_thread, (void *)NULL);
-
-   if(rc != 0) {
-     FSI_TRACE(FSI_ERR, "Failed to create CloseHandleListener thread rc[%d]",
-               rc);
-     return -1;
+   rc = pthread_attr_init(&attr_thr);
+   if (rc != 0) {
+     FSI_TRACE(FSI_FATAL, "Failed to init thread attribute, rc=%d", rc);
+     return rc;
    }
-
-   FSI_TRACE(FSI_NOTICE, "CloseHandle listener thread created successfully");
-   return 0;
-}
-
-static int
-ptfsal_polling_closeHandler_thread_init(void)
-{
-   pthread_attr_t attr_thr;
-   int            rc;
-
-   /* Init the thread in charge of renewing the client id */
-   /* Init for thread parameter (mostly for scheduling) */
-   pthread_attr_init(&attr_thr);
 
    rc = pthread_create(&g_pthread_polling_closehandler,
                        &attr_thr,
@@ -236,10 +204,21 @@ ptfsal_polling_closeHandler_thread_init(void)
    if(rc != 0) {
      FSI_TRACE(FSI_ERR, "Failed to create polling close handler thread rc[%d]",
                rc);
-     return -1;
+     return rc;
+   } else {
+     FSI_TRACE(FSI_NOTICE, "Polling close handler created successfully");
    }
 
-   FSI_TRACE(FSI_NOTICE, "Polling close handler created successfully");
+   rc = pthread_create(&g_pthread_closehandle_listener,
+                       &attr_thr,
+                       ptfsal_closeHandle_listener_thread, (void *)NULL);
+   if (rc != 0) {
+     FSI_TRACE(FSI_FATAL, "Failed to create CloseHandleListener thread rc[%d]",
+               rc);
+     return rc;
+   } else {
+     FSI_TRACE(FSI_NOTICE, "CloseHandle listener thread created successfully");
+   }
    return 0;
 }
 

@@ -125,7 +125,7 @@ stop() {
 
 	# Kill the Ganesha process
 	echo -n $"Stopping $prog: "
-	killproc -d 30 $PATHPROG
+	killproc -d 600 $PATHPROG
 	RETVAL=$?
 	[ $RETVAL -eq 0 ] && rm -f  /var/lock/subsys/pt.ganesha.nfsd
 

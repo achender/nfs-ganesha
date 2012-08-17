@@ -19,7 +19,7 @@ fsi_get_whole_path(const char * parentPath,
                    char       * path)
 {
   FSI_TRACE(FSI_DEBUG, "parentPath=%s, name=%s\n", parentPath, name);
-  if(!strcmp(parentPath, "/") || !strcmp(parentPath, "")) {
+  if (!strcmp(parentPath, "/") || !strcmp(parentPath, "")) {
     snprintf(path, PATH_MAX, "%s", name);
   } else {
     snprintf(path, PATH_MAX, "%s/%s", parentPath, name);
@@ -241,7 +241,7 @@ ptfsal_rename(fsal_op_context_t * p_context,
   rc = fsi_get_name_from_handle(p_context, 
                                 p_old_parent_dir_handle->data.handle.f_handle, 
                                 fsi_old_parent_dir_name);
-  if( rc < 0 )
+  if ( rc < 0 )
   {
     FSI_TRACE(FSI_DEBUG, "Failed to get name from handle.");
     return rc;
@@ -249,7 +249,7 @@ ptfsal_rename(fsal_op_context_t * p_context,
   rc = fsi_get_name_from_handle(p_context, 
                                 p_new_parent_dir_handle->data.handle.f_handle, 
                                 fsi_new_parent_dir_name);
-  if( rc < 0 )
+  if ( rc < 0 )
   {
     FSI_TRACE(FSI_DEBUG, "Failed to get name from handle.");
     return rc;
@@ -260,7 +260,7 @@ ptfsal_rename(fsal_op_context_t * p_context,
   FSI_TRACE(FSI_DEBUG, "Full path is %s", fsi_new_fullpath);
 
   rc = ccl_rename(&ccl_context, fsi_old_fullpath, fsi_new_fullpath);
-  if(rc == 0) {
+  if (rc == 0) {
     fsi_update_cache_name(fsi_old_fullpath, fsi_new_fullpath);
   }
 
@@ -299,7 +299,7 @@ ptfsal_stat_by_parent_name(fsal_op_context_t * p_context,
   stat_rc = fsi_get_name_from_handle(p_context, 
                                      p_parent_dir_handle->data.handle.f_handle, 
                                      fsi_parent_dir_name);
-  if( stat_rc < 0 )
+  if ( stat_rc < 0 )
   {
     FSI_TRACE(FSI_DEBUG, "Failed to get name from handle.");
     return stat_rc;
@@ -496,7 +496,7 @@ ptfsal_open_by_handle(fsal_op_context_t * p_context,
   rc = fsi_get_name_from_handle(p_context, 
                                 (char *)&p_fsi_handle->data.handle.f_handle,
                                 (char *)&fsi_filename);
-  if(rc < 0)
+  if (rc < 0)
   {
     FSI_TRACE(FSI_DEBUG, "Handle to name failed rc=%d", rc);
   }
@@ -533,7 +533,7 @@ ptfsal_open(fsal_handle_t     * p_parent_directory_handle,
   rc = fsi_get_name_from_handle(p_context, 
                                 p_fsi_parent_handle->data.handle.f_handle, 
                                 fsi_parent_dir_name);
-  if(rc < 0)
+  if (rc < 0)
   {
     FSI_TRACE(FSI_DEBUG, "Handle to name failed rc=%d", rc);
     return rc;
@@ -606,7 +606,7 @@ ptfsal_unlink(fsal_op_context_t * p_context,
   rc = fsi_get_name_from_handle(p_context, 
                                 p_parent_dir_handle->data.handle.f_handle, 
                                 fsi_parent_dir_name);
-  if( rc < 0 )
+  if ( rc < 0 )
   {
     FSI_TRACE(FSI_DEBUG, "Failed to get name from handle.");
     return rc;
@@ -688,7 +688,7 @@ ptfsal_mkdir(fsal_handle_t     * p_parent_directory_handle,
   rc = fsi_get_name_from_handle(p_context, 
                                 p_fsi_parent_handle->data.handle.f_handle, 
                                 fsi_parent_dir_name);
-  if(rc < 0)
+  if (rc < 0)
   {
     FSI_TRACE(FSI_DEBUG, "Handle to name failed for hanlde %s", 
               p_fsi_parent_handle->data.handle.f_handle);
@@ -734,7 +734,7 @@ ptfsal_rmdir(fsal_op_context_t * p_context,
 
   rc = fsi_get_name_from_handle(p_context, 
     p_parent_dir_handle->data.handle.f_handle, fsi_parent_dir_name);
-  if( rc < 0 )
+  if ( rc < 0 )
   {
     FSI_TRACE(FSI_DEBUG, "Failed to get name from handle.");
     return rc;

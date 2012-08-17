@@ -99,11 +99,11 @@ PTFSAL_Init(fsal_parameter_t * init_info    /* IN */)
   fsal_status_t status;
 
   /* sanity check.  */
-  if(!init_info)
+  if (!init_info)
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_Init);
 
   /* These are initial values until we get our own Ganesha component */
-  g_ptfsal_debug_level = FSI_NOTICE;   // TODO get our own mechanism to set
+  g_ptfsal_debug_level = FSI_NOTICE;  // TODO get our own mechanism to set
                                       //  or have these settable by Ganesha
                                       //  debug control
   g_ptfsal_comp_num = (int) COMPONENT_FSAL;  // till we get our own comp
@@ -115,7 +115,7 @@ PTFSAL_Init(fsal_parameter_t * init_info    /* IN */)
   status = fsal_internal_init_global(&(init_info->fsal_info),
                                      &(init_info->fs_common_info),
                                      &(init_info->fs_specific_info));
-  if(FSAL_IS_ERROR(status))
+  if (FSAL_IS_ERROR(status))
     Return(status.major, status.minor, INDEX_FSAL_Init);
 
   /* init mutexes */
@@ -128,7 +128,6 @@ PTFSAL_Init(fsal_parameter_t * init_info    /* IN */)
   pthread_mutex_init(&g_fsi_name_handle_mutex, NULL);
 
   g_fsi_name_handle_cache.m_count = 0;
- 
 
   /* FSI CCL Layer INIT */
   int rc = ccl_init(MULTITHREADED);
@@ -150,8 +149,8 @@ PTFSAL_Init(fsal_parameter_t * init_info    /* IN */)
 // ----------------------------------------------------------------------------
 //   CCL Up Call defintions
 // ----------------------------------------------------------------------------
-
-int ccl_up_mutex_lock( pthread_mutex_t * pmutex)
+int 
+ccl_up_mutex_lock( pthread_mutex_t * pmutex)
 {
   FSI_TRACE(FSI_DEBUG, "requesting lock on 0x%lx", (unsigned int) pmutex);
   int rc = pthread_mutex_lock( pmutex);
@@ -163,7 +162,8 @@ int ccl_up_mutex_lock( pthread_mutex_t * pmutex)
   return rc;
 }
 
-int ccl_up_mutex_unlock( pthread_mutex_t * pmutex)
+int 
+ccl_up_mutex_unlock( pthread_mutex_t * pmutex)
 {
   FSI_TRACE(FSI_DEBUG, "unlocking 0x%lx", (unsigned int) pmutex);
   int rc = pthread_mutex_unlock( pmutex);
@@ -177,13 +177,13 @@ int ccl_up_mutex_unlock( pthread_mutex_t * pmutex)
   return rc;
 }
 
-unsigned long ccl_up_self()
+unsigned long 
+ccl_up_self()
 {
    unsigned long my_tid = pthread_self();
    FSI_TRACE(FSI_DEBUG, "tid = %ld ", my_tid);
    return my_tid;
 }
-
 
 static int
 ptfsal_pt_thread_init(void)

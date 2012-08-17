@@ -105,12 +105,12 @@ PTFSAL_open_by_name(fsal_handle_t      * dirhandle,        /* IN */
   fsal_handle_t filehandle;
 
   FSI_TRACE(FSI_DEBUG, "FSI - Enter open by name\n");
-  if(!dirhandle || !filename || !p_context || !file_descriptor)
+  if (!dirhandle || !filename || !p_context || !file_descriptor)
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_open_by_name);
 
   fsal_status = FSAL_lookup(dirhandle, filename, p_context, &filehandle, 
                             file_attributes);
-  if(FSAL_IS_ERROR(fsal_status))
+  if (FSAL_IS_ERROR(fsal_status))
     return fsal_status;
 
   return FSAL_open(&filehandle, p_context, openflags, file_descriptor, 
@@ -170,7 +170,7 @@ fsal_status_t PTFSAL_open(fsal_handle_t      * p_filehandle,   /* IN */
   /* sanity checks.
    * note : file_attributes is optional.
    */
-  if(!p_filehandle || !p_context || !p_file_descriptor) {
+  if (!p_filehandle || !p_context || !p_file_descriptor) {
     FSI_TRACE(FSI_DEBUG, "Bad Parameters");
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_open);
   }
@@ -179,7 +179,7 @@ fsal_status_t PTFSAL_open(fsal_handle_t      * p_filehandle,   /* IN */
   rc = fsal2posix_openflags(openflags, &posix_flags);
 
   /* flags conflicts. */
-  if(rc) {
+  if (rc) {
     LogWarn(COMPONENT_FSAL, "Invalid/conflicting flags : %#X", openflags);
     Return(rc, 0, INDEX_FSAL_open);
   }
@@ -189,14 +189,14 @@ fsal_status_t PTFSAL_open(fsal_handle_t      * p_filehandle,   /* IN */
   FSI_TRACE(FSI_DEBUG, "FSI - PTFSAL fd = %d\n",fd);
 
 
-  if(FSAL_IS_ERROR(status))
+  if (FSAL_IS_ERROR(status))
     ReturnStatus(status, INDEX_FSAL_open);
 
   /* output attributes */
-  if(p_file_attributes) {
+  if (p_file_attributes) {
     p_file_attributes->asked_attributes = PTFS_SUPPORTED_ATTRIBUTES;
     status = PTFSAL_getattrs(p_filehandle, p_context, p_file_attributes);
-    if(FSAL_IS_ERROR(status))
+    if (FSAL_IS_ERROR(status))
       ReturnStatus(status, INDEX_FSAL_open);
   }
 
@@ -261,7 +261,7 @@ fsal_status_t PTFSAL_read(fsal_file_t * file_desc,            /* IN */
 
   /* sanity checks. */
 
-  if(!p_file_descriptor || !buffer || !p_read_amount || !p_end_of_file) {
+  if (!p_file_descriptor || !buffer || !p_read_amount || !p_end_of_file) {
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_read);
   }
 
@@ -280,7 +280,7 @@ fsal_status_t PTFSAL_read(fsal_file_t * file_desc,            /* IN */
 
   /* positioning */
 
-  if(p_seek_descriptor) {
+  if (p_seek_descriptor) {
 
     switch (p_seek_descriptor->whence)
     {
@@ -320,9 +320,9 @@ fsal_status_t PTFSAL_read(fsal_file_t * file_desc,            /* IN */
   nb_read = ptfsal_read(p_file_descriptor, buffer, buffer_size, offset, 
                         handle_index);
 
-  if(nb_read == -1)
+  if (nb_read == -1)
     Return(posix2fsal_error(errsv), errsv, INDEX_FSAL_read);
-  else if(nb_read == 0)
+  else if (nb_read == 0)
     *p_end_of_file = 1;
 
   *p_read_amount = nb_read;
@@ -376,11 +376,11 @@ fsal_status_t PTFSAL_write(fsal_file_t * file_desc,           /* IN */
   FSI_TRACE(FSI_DEBUG, "FSI - PTFSAL write-----------------\n");
 
   /* sanity checks. */
-  if(!p_file_descriptor || !buffer || !p_write_amount) {
+  if (!p_file_descriptor || !buffer || !p_write_amount) {
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_write);
   }
 
-  if(p_file_descriptor->ro) {
+  if (p_file_descriptor->ro) {
     Return(ERR_FSAL_PERM, 0, INDEX_FSAL_write);
   }
   // get FSI location
@@ -399,7 +399,7 @@ fsal_status_t PTFSAL_write(fsal_file_t * file_desc,           /* IN */
 
   /* positioning */
 
-  if(p_seek_descriptor) {
+  if (p_seek_descriptor) {
 
     switch (p_seek_descriptor->whence)
     {
@@ -448,7 +448,7 @@ fsal_status_t PTFSAL_write(fsal_file_t * file_desc,           /* IN */
   nb_written = ptfsal_write(file_desc, buffer, buffer_size, offset, 
                             handle_index);
 
-  if(nb_written <= 0) {
+  if (nb_written <= 0) {
     if (p_seek_descriptor)
       LogDebug(COMPONENT_FSAL,
                "Write operation of size %llu at offset %lld failed. fd=%d, "  
@@ -494,7 +494,7 @@ fsal_status_t PTFSAL_close(fsal_file_t * p_file_descriptor   /* IN */ )
   int rc, errsv;
 
   /* sanity checks. */
-  if(!p_file_descriptor)
+  if (!p_file_descriptor)
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_close);
 
   /* call to close */
@@ -534,12 +534,12 @@ fsal_status_t PTFSAL_commit(fsal_file_t * p_file_descriptor,
   FSI_TRACE(FSI_DEBUG, "FSI - Begin PTFSAL commit-----------------\n");
 
   /* sanity checks. */
-  if(!p_file_descriptor)
+  if (!p_file_descriptor)
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_commit);
 
   rc = ptfsal_fsync(p_file_descriptor);
 
-  if(rc) {
+  if (rc) {
     errsv = errno;
     Return(posix2fsal_error(errsv), errsv, INDEX_FSAL_commit);
   }

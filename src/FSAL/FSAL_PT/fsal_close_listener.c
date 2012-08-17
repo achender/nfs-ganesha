@@ -3,8 +3,9 @@
 // All Rights Reserved
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
-// Filename:    pt_ganesha.c
-// Description: Main layer for PT's Ganesha FSAL
+// Filename:    fsal_close_listener.c
+// Description: Thread to handle close on open processing and polling close
+//              processing.
 // Author:      FSI IPC Team
 // -----------------------------------------------------------------------------
 #include "pt_ganesha.h"
@@ -12,10 +13,9 @@
 #include "log.h"
 int g_closeHandle_req_msgq;
 int g_closeHandle_rsp_msgq;
-extern struct file_handles_struct_t g_fsi_handles; // FSI client handles
-pthread_mutex_t g_close_handle_mutex; // file handle processing mutex
+extern struct file_handles_struct_t g_fsi_handles; /* FSI client handles */
+pthread_mutex_t g_close_handle_mutex; /* file handle processing mutex */
 extern pthread_mutex_t g_handle_mutex;
-
 int ptfsal_closeHandle_attach_to_queues(void)
 {
   int rc;
@@ -47,19 +47,19 @@ int ptfsal_closeHandle_attach_to_queues(void)
   return 0;
 }
 
-void *ptfsal_closeHandle_listener_thread(void *args)
+void * ptfsal_closeHandle_listener_thread(void * args)
 {
   int rc;
   struct msg_t msg;
   int msg_bytes;
   int close_rc;
-  struct CommonMsgHdr *msgHdr;
-  SetNameFunction("PT FSAL CloseOnOpen Handler");
+  struct CommonMsgHdr * msgHdr;
   int handle_found;
+  SetNameFunction("CloseOnOpen Handler");
 
   rc = ptfsal_closeHandle_attach_to_queues();
   if (rc == -1) {
-    exit (1);
+    exit(1);
   }
 
   rc = pthread_mutex_init(&g_close_handle_mutex, NULL);
@@ -67,6 +67,7 @@ void *ptfsal_closeHandle_listener_thread(void *args)
     FSI_TRACE(FSI_FATAL, "Failed to init close handle mutex rc[%d]", rc);
     exit(1);
   }
+
   while (1) {
     msg_bytes = rcv_msg_wait(g_closeHandle_req_msgq,
                              &msg,
@@ -108,7 +109,7 @@ void *ptfsal_closeHandle_listener_thread(void *args)
 
 void ptfsal_close_timedout_handle_bkg(void)
 {
-  /* This function will find out from out handle table
+  /* This function will find out from our handle table
    * which handle has timed out and close it.  This is
    * used by background polling thread
    * ptfsal_polling_closeHandler_thread()
@@ -129,6 +130,7 @@ void ptfsal_close_timedout_handle_bkg(void)
               g_fsi_handles.m_handle[index].m_last_io_time, index,
               current_time, g_fsi_handles.m_handle[index].m_nfs_state,
               g_fsi_handles.m_handle[index].m_hndl_in_use);
+
     handle_closed_in_loop = 0;
     rc = ccl_up_mutex_lock(&g_close_handle_mutex);
     if (rc != 0) {
@@ -172,21 +174,21 @@ void ptfsal_close_timedout_handle_bkg(void)
     } else {
       ccl_up_mutex_unlock(&g_handle_mutex);
     }
+
     ccl_up_mutex_unlock(&g_close_handle_mutex);
     if (handle_closed_in_loop) {
       usleep(PTFSAL_POLLING_HANDLE_LOOP_GAP_USEC);
     }
-
   }
 }
 
-void *ptfsal_polling_closeHandler_thread(void *args)
+void * ptfsal_polling_closeHandler_thread(void * args)
 {
-  SetNameFunction("PT FSAL Polling Close");
+  SetNameFunction("Polling Close Handler");
   while (1) {
     FSI_TRACE(FSI_INFO, "Periodic check for opened handle to close");
     ptfsal_close_timedout_handle_bkg();
-    sleep (PTFSAL_POLLING_HANDLE_TIMEOUT_SEC);
+    sleep(PTFSAL_POLLING_HANDLE_TIMEOUT_SEC);
   }
 }
 
@@ -210,10 +212,11 @@ int ptfsal_find_oldest_handle(void)
         (g_fsi_handles.m_handle[index].m_nfs_state == NFS_CLOSE) &&
         (current_time - g_fsi_handles.m_handle[index].m_last_io_time)
          >= PTFSAL_OLDEST_HANDLE_TIMEOUT_SEC) {
-        oldest_time = g_fsi_handles.m_handle[index].m_last_io_time;
-        fsihandle = index;
+      oldest_time = g_fsi_handles.m_handle[index].m_last_io_time;
+      fsihandle = index;
     }
   }
+  
   FSI_TRACE(FSI_NOTICE, "fsi file handle = %d", fsihandle);
 
   return fsihandle;
@@ -236,6 +239,7 @@ int ptfsal_update_handle_nfs_state(int handle_index, enum e_nfs_state state)
   } else {
     FSI_TRACE(FSI_ERR, "Failed to handle mutex");
   }
+
 }
 
 int ptfsal_explicit_close_for_nfs(int handle_index_to_close)
@@ -263,6 +267,5 @@ int ptfsal_explicit_close_for_nfs(int handle_index_to_close)
   context.gid       = getegid();
   FSI_TRACE(FSI_NOTICE, "Closing handle [%d]", handle_index_to_close);
   return (ccl_close(&context, handle_index_to_close));
-
 }
 

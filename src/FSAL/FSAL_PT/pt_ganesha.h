@@ -41,13 +41,13 @@
 #define fsi_dirent                 dirent
 #define FSI_MAX_HANDLE_CACHE_ENTRY 2500
 #define IO_BUFFER_SIZE             262144 //256k
-#define PTFSAL_POLLING_HANDLE_TIMEOUT_SEC 300  // Time interval between 
-                                               // polling for handle to 
-                                               // close in the
-                                               // background
-#define PTFSAL_OLDEST_HANDLE_TIMEOUT_SEC  30   // Timeout for opened handle 
-                                               // to be considered old in
-                                               // close_on_open path
+#define PTFSAL_POLLING_HANDLE_TIMEOUT_SEC 300  /* Time interval between 
+                                                   polling for handle to 
+                                                   close in the
+                                                   background */
+#define PTFSAL_OLDEST_HANDLE_TIMEOUT_SEC  30   /* Timeout for opened handle 
+                                                  to be considered old in
+                                                  close_on_open path */
 #define PTFSAL_POLLING_HANDLE_LOOP_GAP_USEC  500  /* Sleep time to allow 
                                                      other close to happend
                                                      in between background
@@ -219,5 +219,5 @@ int ptfsal_update_handle_nfs_state(int handle_index, enum e_nfs_state state);
 
 int ptfsal_explicit_close_for_nfs(int handle_index_to_close);
 
-void *ptfsal_polling_closeHandler_thread(void *args);
+void * ptfsal_polling_closeHandler_thread(void * args);
 #endif // ifndef __PT_GANESHA_H__

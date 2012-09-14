@@ -211,9 +211,9 @@ LRU_entry_t *LRU_new_entry(LRU_list_t * plru, LRU_status_t * pstatus)
 {
   LRU_entry_t *new_entry = NULL;
 
-  LogDebug(COMPONENT_LRU,
-           "==> LRU_new_entry: nb_entry = %d nb_entry_prealloc = %d",
-           plru->nb_entry, plru->parameter.nb_entry_prealloc);
+  LogDebug(COMPONENT_DUPREQ,
+           "==> LRU_new_entry: nb_entry = %d nb_entry_prealloc = %d nb_call_gc = %d",
+           plru->nb_entry, plru->parameter.nb_entry_prealloc, plru->nb_call_gc);
 
   new_entry = pool_alloc(plru->lru_entry_pool, NULL);
   if(new_entry == NULL)
@@ -322,9 +322,14 @@ int LRU_gc_invalid(LRU_list_t * plru, void *cleanparam)
   if(plru->MRU->prev == NULL)   /* One entry only, returns success (the MRU cannot be invalid) */
     return LRU_LIST_SUCCESS;
 
+  LogDebug(COMPONENT_DUPREQ,
+           "==> LRU_gc_invalid Entered:nb_call_gc = %d nb_call_gc_invalid = %d nb_invalid:%d",
+           plru->nb_call_gc, plru->parameter.nb_call_gc_invalid, plru->nb_invalid);
+
   /* Do nothing if not enough calls were done */
   if(plru->nb_call_gc < plru->parameter.nb_call_gc_invalid)
     return LRU_LIST_SUCCESS;
+
   plru->nb_call_gc = 0;
 
   /* From the LRU to the entry BEFORE the MRU */
@@ -346,6 +351,9 @@ int LRU_gc_invalid(LRU_list_t * plru, void *cleanparam)
           plru->nb_invalid --;
         }
     }
+  LogDebug(COMPONENT_DUPREQ,
+           "==> LRU_gc_invalid Exiting:nb_call_gc = %d nb_call_gc_invalid = %d nb_invalid:%d",
+           plru->nb_call_gc, plru->parameter.nb_call_gc_invalid, plru->nb_invalid);
 
   return rc;
 }                               /* LRU_gc_invalid */

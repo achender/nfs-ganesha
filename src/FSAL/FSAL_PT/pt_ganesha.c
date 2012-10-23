@@ -12,6 +12,9 @@
 int                   g_ptfsal_context_flag=1;   // global context caching
                                                  // flag. Allows turning off
                                                  // caching for debugging
+pthread_mutex_t fsal_handle_mutex[FSI_MAX_STREAMS + FSI_CIFS_RESERVED_STREAMS];
+                                                 // mutex to prevent
+                                                 // concurrent IO by handle
 
 static pthread_key_t  ptfsal_thread_key;
 static pthread_once_t ptfsal_once_key = PTHREAD_ONCE_INIT;
@@ -21,6 +24,14 @@ typedef struct ptfsal_threadcontext_t
   int cur_namecache_handle_index;
   int cur_fsi_handle_index;
 } ptfsal_threadcontext_t;
+
+// ----------------------------------------------------------------------------
+int handle_index_is_valid(int handle_index)
+{
+  if (handle_index < 0) return 0;
+  if (handle_index >= (FSI_MAX_STREAMS + FSI_CIFS_RESERVED_STREAMS)) return 0;
+  return 1;
+}
 
 // ----------------------------------------------------------------------------
 static void ptfsal_create_key()
@@ -565,6 +576,7 @@ int
 ptfsal_fsync(fsal_file_t * p_file_descriptor)
 {
   int handle_index;
+  int fsync_rc;
 
   ptfsal_file_t * p_file_desc  = (ptfsal_file_t *)p_file_descriptor;
   ccl_context_t ccl_context;
@@ -579,7 +591,18 @@ ptfsal_fsync(fsal_file_t * p_file_descriptor)
   ccl_context.uid       = p_file_desc->uid;
   ccl_context.gid       = p_file_desc->gid;
 
-  return ccl_fsync(&ccl_context,handle_index);
+  if (handle_index_is_valid(ccl_context.handle_index)) {
+    pthread_mutex_lock(&fsal_handle_mutex[ccl_context.handle_index]);
+  }
+
+  fsync_rc = ccl_fsync(&ccl_context,handle_index);
+
+  if (handle_index_is_valid(ccl_context.handle_index)) {
+    pthread_mutex_unlock(&fsal_handle_mutex[ccl_context.handle_index]);
+  }
+
+  return fsync_rc;
+
 }
 // -----------------------------------------------------------------------------
 int
@@ -765,10 +788,22 @@ ptfsal_ftruncate(fsal_op_context_t * p_context,
                  uint64_t            offset)
 {
   ccl_context_t ccl_context;
+  int ftrunc_rc;
 
   ptfsal_set_fsi_handle_data(p_context, &ccl_context);
 
-  return ccl_ftruncate(&ccl_context, handle_index, offset);
+  if (handle_index_is_valid(handle_index)) {
+    pthread_mutex_lock(&fsal_handle_mutex[handle_index]);
+  }
+
+  ftrunc_rc = ccl_ftruncate(&ccl_context, handle_index, offset);
+
+  if (handle_index_is_valid(handle_index)) {
+    pthread_mutex_unlock(&fsal_handle_mutex[handle_index]);
+  }
+
+  return ftrunc_rc;
+
 }
 // -----------------------------------------------------------------------------
 int
@@ -948,6 +983,10 @@ ptfsal_read(ptfsal_file_t * p_file_descriptor,
   ccl_context.uid          = p_file_descriptor->uid;
   ccl_context.gid          = p_file_descriptor->gid;
 
+  if (handle_index_is_valid(ccl_context.handle_index)) {
+    pthread_mutex_lock(&fsal_handle_mutex[ccl_context.handle_index]);
+  }
+
   // we will use 256K i/o with vtl but allow larger i/o from NFS
   FSI_TRACE(FSI_DEBUG, "FSI - [%4d] xmp_read off %ld size %ld\n", 
             in_handle, offset, size);
@@ -963,6 +1002,9 @@ ptfsal_read(ptfsal_file_t * p_file_descriptor,
     rc = ccl_pread(&ccl_context, &buf[buf_offset], IO_BUFFER_SIZE, cur_offset, 
                    max_readahead_offset);
     if (rc == -1) {
+      if (handle_index_is_valid(ccl_context.handle_index)) {
+        pthread_mutex_unlock(&fsal_handle_mutex[ccl_context.handle_index]);
+      }
       return rc;
     }
     cur_size   -= IO_BUFFER_SIZE;
@@ -978,8 +1020,15 @@ ptfsal_read(ptfsal_file_t * p_file_descriptor,
     rc = ccl_pread(&ccl_context, &buf[buf_offset], cur_size, cur_offset,
                    max_readahead_offset);
     if (rc == -1) {
+      if (handle_index_is_valid(ccl_context.handle_index)) {
+        pthread_mutex_unlock(&fsal_handle_mutex[ccl_context.handle_index]);
+      }
       return rc;
     }
+  }
+
+  if (handle_index_is_valid(ccl_context.handle_index)) {
+    pthread_mutex_unlock(&fsal_handle_mutex[ccl_context.handle_index]);
   }
 
   return size;
@@ -1006,6 +1055,10 @@ ptfsal_write(fsal_file_t * file_desc,
   ccl_context.uid          = p_file_descriptor->uid;
   ccl_context.gid          = p_file_descriptor->gid;
 
+  if (handle_index_is_valid(ccl_context.handle_index)) {
+    pthread_mutex_lock(&fsal_handle_mutex[ccl_context.handle_index]);
+  }
+
   // we will use 256K i/o with vtl but allow larger i/o from NFS
   FSI_TRACE(FSI_DEBUG, "FSI - [%4d] xmp_write off %ld size %ld\n", 
             in_handle, offset, size);
@@ -1015,6 +1068,9 @@ ptfsal_write(fsal_file_t * file_desc,
     rc = ccl_pwrite(&ccl_context, in_handle, &buf[buf_offset], IO_BUFFER_SIZE, 
                     cur_offset);
     if (rc == -1) {
+      if (handle_index_is_valid(ccl_context.handle_index)) {
+        pthread_mutex_unlock(&fsal_handle_mutex[ccl_context.handle_index]);
+      }
       return rc;
     }
     cur_size   -= IO_BUFFER_SIZE;
@@ -1030,8 +1086,15 @@ ptfsal_write(fsal_file_t * file_desc,
     rc = ccl_pwrite(&ccl_context, in_handle, &buf[buf_offset], cur_size, 
                     cur_offset);
     if (rc == -1) {
+      if (handle_index_is_valid(ccl_context.handle_index)) {
+        pthread_mutex_unlock(&fsal_handle_mutex[ccl_context.handle_index]);
+      }
       return rc;
     }
+  }
+
+  if (handle_index_is_valid(ccl_context.handle_index)) {
+    pthread_mutex_unlock(&fsal_handle_mutex[ccl_context.handle_index]);
   }
 
   return size;

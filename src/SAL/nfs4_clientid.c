@@ -1145,14 +1145,10 @@ int nfs_Init_client_id(nfs_client_id_parameter_t *param)
 
 clientid4 new_clientid(void)
 {
-	clientid4 newid;
+	clientid4 newid     = atomic_inc_uint32_t(&clientid_counter);
 	uint64_t  epoch_low = ServerEpoch & 0xFFFFFFFF;
 
-	P(clientid_mutex);
-	newid = ++clientid_counter + (epoch_low << (clientid4) 32);
-	V(clientid_mutex);
-
-	return newid;
+	return newid + (epoch_low << (clientid4) 32);
 }
 
 /**
@@ -1160,12 +1156,12 @@ clientid4 new_clientid(void)
  *
  * @param[out] verf The verifier
  */
-void new_clientifd_verifier(char *verf)
+void new_clientid_verifier(char * pverf)
 {
-	P(clientid_mutex);
-	++clientid_verifier;
-	memcpy(verf, &clientid_verifier, NFS4_VERIFIER_SIZE);
-	V(clientid_mutex);
+
+   uint64_t my_verifier = atomic_inc_uint64_t(&clientid_verifier);
+   memcpy(pverf, &my_verifier, NFS4_VERIFIER_SIZE);
+
 }
 
 /******************************************************************************

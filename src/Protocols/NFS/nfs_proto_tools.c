@@ -3107,23 +3107,6 @@ int nfs4_Fattr_cmp(fattr4 * Fattr1, fattr4 * Fattr2)
     return FALSE;
 }
 
-#ifdef _USE_NFS4_ACL
-static int nfs4_decode_acl_special_user(utf8string *utf8str, int *who)
-{
-  int i;
-
-  for (i = 0; i < FSAL_ACE_SPECIAL_EVERYONE; i++)
-    {
-      if(strncmp(utf8str->utf8string_val, whostr_2_type_map[i].string, utf8str->utf8string_len) == 0)
-        {
-          *who = whostr_2_type_map[i].type;
-          return 0;
-        }
-    }
-
-  return -1;
-}
-
 static inline bool_t verify_attr_len(fattr4 * Fattr,
                                      int    * LastOffset,
                                      size_t   size)
@@ -3166,6 +3149,23 @@ static inline bool_t copy_attr_val(void   * dest,
     *LastOffset += size;
 
   return TRUE;
+}
+
+#ifdef _USE_NFS4_ACL
+static int nfs4_decode_acl_special_user(utf8string *utf8str, int *who)
+{
+  int i;
+
+  for (i = 0; i < FSAL_ACE_SPECIAL_EVERYONE; i++)
+    {
+      if(strncmp(utf8str->utf8string_val, whostr_2_type_map[i].string, utf8str->utf8string_len) == 0)
+        {
+          *who = whostr_2_type_map[i].type;
+          return 0;
+        }
+    }
+
+  return -1;
 }
 
 static int nfs4_decode_acl(fsal_attrib_list_t * pFSAL_attr,

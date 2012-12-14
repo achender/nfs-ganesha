@@ -118,6 +118,8 @@ option(USE_FSAL_GPFS "build GPFS FSAL" ON)
 option(USE_FSAL_ZFS "build ZFS FSAL" ON)
 option(USE_FSAL_LUSTRE "build LUSTRE FSAL" ON)
 option(USE_FSAL_XFS "build XFS support in VFS FSAL" ON)
+option(USE_FSAL_PT "build PT FSAL" ON)
+
 
 # FSALs which are disabled by default
 option(USE_FSAL_HPSS "build HPSS FSAL" OFF)
@@ -579,6 +581,7 @@ message(STATUS "USE_FSAL_HPSS = ${USE_FSAL_HPSS}")
 message(STATUS "USE_FSAL_FUSE = ${USE_FSAL_FUSE}")
 message(STATUS "USE_FSAL_XFS = ${USE_FSAL_XFS}")
 message(STATUS "USE_FSAL_GPFS = ${USE_FSAL_GPFS}")
+message(STATUS "USE_FSAL_PT = ${USE_FSAL_PT}")
 message(STATUS "USE_FSAL_ZFS = ${USE_FSAL_ZFS}")
 message(STATUS "USE_FSAL_LUSTRE = ${USE_FSAL_LUSTRE}")
 message(STATUS "USE_FSAL_SHOOK = ${USE_FSAL_SHOOK}")
@@ -653,6 +656,11 @@ set(USE_FSAL_XFS ${USE_FSAL_XFS}
 set(USE_FSAL_GPFS ${USE_FSAL_GPFS}
   CACHE BOOL
    "build GPFS FSAL"
+   FORCE)
+
+set(USE_FSAL_PT ${USE_FSAL_PT}
+  CACHE BOOL
+   "build PT FSAL"
    FORCE)
 
 set(USE_FSAL_ZFS ${USE_FSAL_ZFS}

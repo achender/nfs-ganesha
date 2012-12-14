@@ -290,6 +290,7 @@ void print_debug_info_fd(int fd)
       rc = write(fd, str, strlen(str));
       if (rc);
       free(str);
+      if (rc);
     }
 }
 

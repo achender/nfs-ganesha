@@ -15,6 +15,7 @@ set(VERSION_COMMENT
   "GANESHA 64 bits compliant. FSAL_PROXY re-exports NFSv3. RPCSEC_GSS support (partial)"
 )
 
+
 # find out which platform we are building on
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(LINUX ON)
@@ -133,6 +134,8 @@ option(USE_FSAL_GPFS "build GPFS FSAL" ON)
 option(USE_FSAL_ZFS "build ZFS FSAL" ON)
 option(USE_FSAL_LUSTRE "build LUSTRE FSAL" ON)
 option(USE_FSAL_XFS "build XFS support in VFS FSAL" ON)
+option(USE_FSAL_PT "build PT FSAL" ON)
+
 
 # FSALs which are disabled by default
 option(USE_FSAL_HPSS "build HPSS FSAL" OFF)
@@ -635,6 +638,7 @@ message(STATUS "USE_FSAL_CEPH = ${USE_FSAL_CEPH}")
 message(STATUS "USE_FSAL_HPSS = ${USE_FSAL_HPSS}")
 message(STATUS "USE_FSAL_XFS = ${USE_FSAL_XFS}")
 message(STATUS "USE_FSAL_GPFS = ${USE_FSAL_GPFS}")
+message(STATUS "USE_FSAL_PT = ${USE_FSAL_PT}")
 message(STATUS "USE_FSAL_ZFS = ${USE_FSAL_ZFS}")
 message(STATUS "USE_FSAL_LUSTRE = ${USE_FSAL_LUSTRE}")
 message(STATUS "USE_FSAL_SHOOK = ${USE_FSAL_SHOOK}")
@@ -699,6 +703,11 @@ set(USE_FSAL_XFS ${USE_FSAL_XFS}
 set(USE_FSAL_GPFS ${USE_FSAL_GPFS}
   CACHE BOOL
    "build GPFS FSAL"
+   FORCE)
+
+set(USE_FSAL_PT ${USE_FSAL_PT}
+  CACHE BOOL
+   "build PT FSAL"
    FORCE)
 
 set(USE_FSAL_ZFS ${USE_FSAL_ZFS}
@@ -781,6 +790,12 @@ set(_USE_9P_RDMA ${_USE_9P_RDMA}
   CACHE BOOL
    "enable 9P_RDMA support"
    FORCE)
+
+set(RELEASE 2.0.0-1)
+set(DIST_VER "")
+if(USE_FSAL_PT)
+  set(DIST_VER ptv4.1_rev_11)
+endif(USE_FSAL_PT)
 
 # Now create a useable config.h
 configure_file(

@@ -700,7 +700,8 @@ int parseAccessParam(char                * var_name,
 
 bool_t fsal_specific_checks(exportlist_t *p_entry)
 {
-  #ifdef _USE_GPFS
+  #if defined(_USE_GPFS) || defined (_USE_PT)
+  #ifdef _USE_FSAL_UP
   p_entry->use_fsal_up = TRUE;
 
   if (strncmp(p_entry->fsal_up_type, "DUMB", 4) != 0)
@@ -710,6 +711,7 @@ bool_t fsal_specific_checks(exportlist_t *p_entry)
               " Setting it to \"DUMB\"", CONF_EXPORT_FSAL_UP_TYPE);
       strncpy(p_entry->fsal_up_type,"DUMB", 4);
     }
+  #endif
   if (p_entry->use_ganesha_write_buffer != FALSE)
     {
       LogWarn(COMPONENT_CONFIG,
@@ -3759,6 +3761,7 @@ int nfs_export_create_root_entry(struct glist_head * pexportlist)
       fsal_export_context_t *export_context = NULL;
 
       /* Get the context for FSAL super user */
+      memset(&context, 0, sizeof(fsal_op_context_t));
       fsal_status = FSAL_InitClientContext(&context);
       if(FSAL_IS_ERROR(fsal_status))
         {

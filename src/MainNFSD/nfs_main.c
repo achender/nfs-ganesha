@@ -333,6 +333,12 @@ int main(int argc, char *argv[])
       LogFatal(COMPONENT_INIT, "Error while parsing %s: %s",
 	       config_path, config_GetErrorMsg());
     }
+  LogEvent(COMPONENT_MAIN,
+           ">>>>>>>>>> Version " VERSION "-" RELEASE DIST_VER " <<<<<<<<<<");
+
+  LogEvent(COMPONENT_MAIN,
+           ">>>>>>>>>>--------------------------------------- <<<<<<<<<<" ) ;
+
 
   start_fsals(config_struct);
 

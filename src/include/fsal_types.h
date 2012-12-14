@@ -160,7 +160,6 @@ struct req_op_context {
         /* add new context members here */
 };
 
-
 /** filesystem identifier */
 
 typedef struct fsal_fsid__

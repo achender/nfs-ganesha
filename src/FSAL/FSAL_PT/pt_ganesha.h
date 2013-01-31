@@ -18,7 +18,7 @@
 #include "fsal.h"
 #include "fsal_internal.h"
 #include "fsal_convert.h"
-#include "fsi_ipc_ccl.h"
+#include <fsi_ipc_ccl.h>
 
 // Linux includes
 #include <stdio.h>

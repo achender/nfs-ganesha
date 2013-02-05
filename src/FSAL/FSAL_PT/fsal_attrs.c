@@ -232,7 +232,7 @@ PTFSAL_setattrs(fsal_handle_t      * p_filehandle,       /* IN */
 
     if (wanted_attrs.asked_attributes
        & (FSAL_ATTR_ATIME | FSAL_ATTR_CREATION | FSAL_ATTR_CTIME 
-       | FSAL_ATTR_MTIME)) {
+       | FSAL_ATTR_MTIME | FSAL_ATTR_ATIME_SERVER | FSAL_ATTR_MTIME_SERVER)) {
        /* handled as an unsettable attribute. */
        Return(ERR_FSAL_INVAL, 0, INDEX_FSAL_setattrs);
     }
@@ -252,6 +252,8 @@ PTFSAL_setattrs(fsal_handle_t      * p_filehandle,       /* IN */
                   FSAL_ATTR_RDATTR_ERR);
     ReturnStatus(status, INDEX_FSAL_setattrs);
   }
+
+  memset(&buffxstat, 0, sizeof(buffxstat));
 
   /***********
    *  CHMOD  *
@@ -508,33 +510,49 @@ PTFSAL_setattrs(fsal_handle_t      * p_filehandle,       /* IN */
   }
 
   if (FSAL_TEST_MASK(wanted_attrs.asked_attributes, FSAL_ATTR_ATIME | 
-                    FSAL_ATTR_MTIME)) {
+                    FSAL_ATTR_MTIME | FSAL_ATTR_ATIME_SERVER |
+                    FSAL_ATTR_MTIME_SERVER)) {
 
     /* Fill wanted atime. */
     if (FSAL_TEST_MASK(wanted_attrs.asked_attributes, FSAL_ATTR_ATIME)) {
       buffxstat.buffstat.st_atime = (time_t) wanted_attrs.atime.seconds;
+      buffxstat.buffstat.st_atim.tv_nsec = wanted_attrs.atime.nseconds;
       FSI_TRACE(FSI_DEBUG,
                 "current atime = %lu, new atime = %lu",
                 (unsigned long)current_attrs.atime.seconds, 
                 (unsigned long)buffxstat.buffstat.st_atime);
-    } else {
-      buffxstat.buffstat.st_atime = (time_t) current_attrs.atime.seconds;
     }
-    FSI_TRACE(FSI_DEBUG,
-              "current atime = %lu, new atime = %lu",
-              (unsigned long)current_attrs.atime.seconds,
-              (unsigned long)buffxstat.buffstat.st_atime);
 
     /* Fill wanted mtime. */
     if (FSAL_TEST_MASK(wanted_attrs.asked_attributes, FSAL_ATTR_MTIME)) {
       buffxstat.buffstat.st_mtime = (time_t) wanted_attrs.mtime.seconds;
-    } else {
-      buffxstat.buffstat.st_mtime = (time_t) current_attrs.mtime.seconds;
+      buffxstat.buffstat.st_mtim.tv_nsec = wanted_attrs.mtime.nseconds;
+      FSI_TRACE(FSI_DEBUG,
+                "current mtime = %lu, new mtime = %lu",
+                (unsigned long)current_attrs.mtime.seconds,
+                (unsigned long)buffxstat.buffstat.st_mtime);
     }
-    FSI_TRACE(FSI_DEBUG,
-              "current mtime = %lu, new mtime = %lu",
-              (unsigned long)current_attrs.mtime.seconds,
-              (unsigned long)buffxstat.buffstat.st_mtime);
+
+    /* Fill wanted server atime. */
+    if (FSAL_TEST_MASK(wanted_attrs.asked_attributes, FSAL_ATTR_ATIME_SERVER)) {
+      buffxstat.buffstat.st_atime = (time_t) wanted_attrs.atime.seconds;
+      buffxstat.buffstat.st_atim.tv_nsec = wanted_attrs.atime.nseconds;
+      FSI_TRACE(FSI_DEBUG,
+                "current atime = %lu, new atime = %lu",
+                (unsigned long)current_attrs.atime.seconds,
+                (unsigned long)buffxstat.buffstat.st_atime);
+    }
+
+    /* Fill wanted server mtime. */
+    if (FSAL_TEST_MASK(wanted_attrs.asked_attributes, FSAL_ATTR_MTIME_SERVER)) {
+      buffxstat.buffstat.st_mtime = (time_t) wanted_attrs.mtime.seconds;
+      buffxstat.buffstat.st_mtim.tv_nsec = wanted_attrs.mtime.nseconds;
+      FSI_TRACE(FSI_DEBUG,
+                "current mtime = %lu, new mtime = %lu",
+                (unsigned long)current_attrs.mtime.seconds,
+                (unsigned long)buffxstat.buffstat.st_mtime);
+    }
+
 
     rc = fsi_get_name_from_handle(p_context, 
                                   p_filehandle->data.handle.f_handle, 

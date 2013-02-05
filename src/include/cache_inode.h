@@ -647,6 +647,13 @@ cache_inode_status_t cache_inode_access2(cache_entry_t *entry,
                                          fsal_attrib_list_t *attrs,
                                          cache_inode_status_t *status);
 
+cache_inode_status_t
+cache_inode_check_setattr_perms(cache_entry_t        * pentry,
+                                fsal_attrib_list_t   * sattr,
+                                fsal_op_context_t    * pcontext,
+                                int                    is_open_write,
+                                cache_inode_status_t * status);
+
 fsal_file_t *cache_inode_fd(cache_entry_t *entry);
 
 bool_t is_open_for_read(cache_entry_t *entry);
@@ -1042,13 +1049,16 @@ cache_inode_get_changeid4(cache_entry_t *entry)
 
 static inline cache_inode_status_t
 cache_inode_lock_trust_attrs(cache_entry_t *entry,
-                             fsal_op_context_t *context)
+                             fsal_op_context_t *context,
+                             int need_wr_lock)
 {
      cache_inode_status_t cache_status = CACHE_INODE_SUCCESS;
      time_t current_time = 0;
 
-
-     pthread_rwlock_rdlock(&entry->attr_lock);
+     if(need_wr_lock)
+       pthread_rwlock_wrlock(&entry->attr_lock);
+     else
+       pthread_rwlock_rdlock(&entry->attr_lock);
      current_time = time(NULL);
      /* Do we need to refresh? */
      if (!(entry->flags & CACHE_INODE_TRUST_ATTRS) ||
@@ -1058,8 +1068,10 @@ cache_inode_lock_trust_attrs(cache_entry_t *entry,
            (entry->type == DIRECTORY)) ||
          FSAL_TEST_MASK(entry->attributes.asked_attributes,
                         FSAL_ATTR_RDATTR_ERR)) {
-          pthread_rwlock_unlock(&entry->attr_lock);
-          pthread_rwlock_wrlock(&entry->attr_lock);
+         if(!need_wr_lock) {
+           pthread_rwlock_unlock(&entry->attr_lock);
+           pthread_rwlock_wrlock(&entry->attr_lock);
+         }
           /* Has someone else done it for us? */
          if (!(entry->flags & CACHE_INODE_TRUST_ATTRS) ||
              ((current_time - entry->attr_time) >

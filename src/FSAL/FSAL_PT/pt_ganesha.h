@@ -51,6 +51,7 @@
 extern int             debug_flag;
 extern struct          fsi_handle_cache_t  g_fsi_name_handle_cache;
 extern pthread_mutex_t g_fsi_name_handle_mutex;
+extern int             polling_thread_handle_timeout_sec;
 
 void fsi_get_whole_path(const char * parentPath,
                         const char * name,

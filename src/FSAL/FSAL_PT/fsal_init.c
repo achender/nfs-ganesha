@@ -67,6 +67,8 @@ pthread_mutex_t g_statistics_mutex;
 pthread_t g_pthread_closehandle_lisetner;
 pthread_t g_pthread_polling_closehandler;
 
+int  polling_thread_handle_timeout_sec = CCL_POLLING_THREAD_HANDLE_TIMEOUT_SEC;
+
 #define COMPONENT_FSAL_PT  5   // COMPONENT_FSAL
 
 int PTFSAL_log(int level, const char * message)

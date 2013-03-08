@@ -42,6 +42,7 @@
 #include "fsal_convert.h"
 #include <libgen.h> /* used for 'dirname' */
 #include "abstract_mem.h"
+#include "FSAL/access_check.h"
 
 #include <pthread.h>
 #include <string.h>
@@ -355,6 +356,7 @@ fsal_status_t fsal_internal_init_global(fsal_init_info_t * fsal_info,
                "FSAL INIT: Supported attributes mask = 0x%llX.",
                global_fs_info.supported_attrs);
 
+  fsal_save_ganesha_credentials();
   return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
 #endif

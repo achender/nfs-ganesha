@@ -146,7 +146,7 @@ void cache_inode_lru_unref(cache_entry_t *entry,
 void lru_wake_thread(void);
 cache_inode_status_t cache_inode_inc_pin_ref(cache_entry_t *entry);
 void cache_inode_unpinnable(cache_entry_t *entry);
-cache_inode_status_t cache_inode_dec_pin_ref(cache_entry_t *entry);
+cache_inode_status_t cache_inode_dec_pin_ref(cache_entry_t *entry, unsigned char c);
 bool cache_inode_is_pinned(cache_entry_t *entry);
 void cache_inode_lru_kill_for_shutdown(cache_entry_t *entry);
 

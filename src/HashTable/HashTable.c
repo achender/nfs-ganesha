@@ -597,6 +597,11 @@ hash_error_t HashTable_SetLatched(struct hash_table *ht,
 	/* New node for the case of non-overwrite */
 	struct rbt_node *mutator = NULL;
 
+     if(index >= ht->parameter.index_size)
+       LogCrit(COMPONENT_HASHTABLE,
+               "index %"PRIu32" exceeds index_size %"PRIu32,
+               index, ht->parameter.index_size);
+
 	if(isDebug(COMPONENT_HASHTABLE) &&
 	   isFullDebug(ht->parameter.ht_log_component)) {
 		char dispkey[HASHTABLE_DISPLAY_STRLEN];

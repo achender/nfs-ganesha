@@ -59,6 +59,9 @@
 
 #define RQCRED_SIZE 400 /* this size is excessive */
 
+/* HACK for ease of testing, remove this - jw */
+#define SONAS
+
 /* Arbitrary string buffer lengths */
 #define AUTH_STR_LEN 30
 #define PWENT_MAX_LEN 81
@@ -274,6 +277,9 @@ void *stats_thread(void *UnusedArg);
 void *long_processing_thread(void *UnusedArg);
 void *stat_exporter_thread(void *UnusedArg);
 void *reaper_thread(void *UnusedArg);
+#ifdef SONAS
+void *recovery_thread(void *UnusedArg);
+#endif
 void *rpc_tcp_socket_manager_thread(void *Arg);
 void *sigmgr_thread(void *UnusedArg);
 void *state_async_thread(void *UnusedArg);

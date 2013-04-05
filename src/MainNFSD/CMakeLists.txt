@@ -26,6 +26,7 @@ SET(MainServices_STAT_SRCS
    nfs_init.c
    nfs_tools.c
    nfs_reaper_thread.c
+   nfs_recovery_thread.c
    ../Protocols/client_mgr.c
 )
 

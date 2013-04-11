@@ -54,6 +54,7 @@
 #include "nfs_core.h"
 #include "nfs23.h"
 #include "nfs4.h"
+#include "nfs4rec.h"
 #include "nfs_proto_functions.h"
 #include "nlm4.h"
 #ifdef _USE_9P
@@ -874,20 +875,6 @@ struct state_async_queue_t {
 		void *state_no_data; /*< Dummy pointer */
 	} state_async_data;
 };
-
-/**
- * @brief Start of grace period
- *
- * @note This looks specific to SONAS and ought not to be in the top
- *       level SAL files.  (The SAL needs more A to support this kind
- *       of thing.)
- */
-
-typedef struct nfs_grace_start {
-	int event; /*< Reason for grace period */
-	ushort nodeid; /*< Node from which we are taking over */
-	void *ipaddr; /*< IP of failed node */
-} nfs_grace_start_t;
 
 /* Memory pools */
 

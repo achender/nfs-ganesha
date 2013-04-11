@@ -51,6 +51,8 @@
 #ifndef H_GPFS_NFS
 #define H_GPFS_NFS
 
+#include <sys/file.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

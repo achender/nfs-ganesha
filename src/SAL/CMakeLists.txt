@@ -20,6 +20,16 @@ SET(sal_STAT_SRCS
    nlm_owner.c
 )
 
+if(USE_FSAL_GPFS)
+  set(sal_STAT_SRCS
+     ${sal_STAT_SRCS}
+     ../FSAL/FSAL_GPFS/gpfsext.c
+  )
+  include_directories(
+     ${PROJECT_SOURCE_DIR}/FSAL/FSAL_GPFS
+  )
+endif(USE_FSAL_GPFS)
+
 if(USE_9P)
   set(sal_STAT_SRCS
     ${sal_STAT_SRCS}

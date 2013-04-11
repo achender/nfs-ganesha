@@ -62,6 +62,9 @@
 /* Arbitrary string buffer lengths */
 #define PWENT_MAX_LEN 81
 
+/* HACK for ease of testing, remove this - jw */
+#define SONAS
+
 /* Hard and soft limit for nfsv4 quotas */
 #define NFS_V4_MAX_QUOTA_SOFT 4294967296LL /*  4 GB */
 #define NFS_V4_MAX_QUOTA_HARD 17179869184LL /* 16 GB */
@@ -273,6 +276,9 @@ void *stats_thread(void *UnusedArg);
 void *long_processing_thread(void *UnusedArg);
 void *stat_exporter_thread(void *UnusedArg);
 void *reaper_thread(void *UnusedArg);
+#ifdef SONAS
+void *recovery_thread(void *UnusedArg);
+#endif
 void *rpc_tcp_socket_manager_thread(void *Arg);
 void *sigmgr_thread(void *UnusedArg);
 void *state_async_thread(void *UnusedArg);

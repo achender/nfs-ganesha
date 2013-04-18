@@ -108,6 +108,17 @@ nfs4_op_setattr(struct nfs_argop4 *op,
                 return res_SETATTR4.status;
         }
 
+        if (state_open == NULL) {
+          if(( entry->obj_handle->attributes.owner !=  data->req_ctx->creds->caller_uid) 
+             && cache_inode_access(entry, 
+                     FSAL_WRITE_ACCESS, 
+                     data->req_ctx) != CACHE_INODE_SUCCESS) 
+            {
+              res_SETATTR4.status = nfs4_Errno(cache_status);
+              return res_SETATTR4.status; 
+            }
+        }
+
         /* Trunc may change Xtime so we have to start with trunc and
          * finish by the mtime and atime */
         if (FSAL_TEST_MASK(sattr.mask, ATTR_SIZE)) {

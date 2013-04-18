@@ -229,7 +229,8 @@ int nfs4_op_write(struct nfs_argop4 *op,
       cache_status = cache_inode_access(entry,
 					FSAL_WRITE_ACCESS,
 					data->req_ctx);
-      if (cache_status != CACHE_INODE_SUCCESS)
+      if (( entry->obj_handle->attributes.owner != data->req_ctx->creds->caller_uid)
+          && cache_status != CACHE_INODE_SUCCESS)
         {
           res_WRITE4.status = nfs4_Errno(cache_status);
           if (anonymous)

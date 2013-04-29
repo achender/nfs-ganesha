@@ -53,18 +53,19 @@
 #include <unistd.h>
 
 #include "pt_ganesha.h"
+#include "pt_methods.h"
 
 /**
  * FSAL_unlink:
  * Remove a filesystem object .
  *
- * \param parentdir_handle (input):
+ * \param dir_hdl (input):
  *        Handle of the parent directory of the object to be deleted.
  * \param p_object_name (input):
  *        Name of the object to be removed.
- * \param cred (input):
+ * \param p_context (input):
  *        Authentication context for the operation (user,...).
- * \param parentdir_attributes (optionnal input/output):
+ * \param p_parentdir_attributes (optionnal input/output):
  *        Post operation attributes of the parent directory.
  *        As input, it defines the attributes that the caller
  *        wants to retrieve (by positioning flags into this structure)
@@ -76,45 +77,49 @@
  *        - ERR_FSAL_NO_ERROR     (no error)
  *        - Another error code if an error occured.
  */
-
-fsal_status_t 
-PTFSAL_unlink(fsal_handle_t      * p_parent_directory_handle,    /* IN */
-              fsal_name_t        * p_object_name,                /* IN */
-              fsal_op_context_t  * p_context,                    /* IN */
-              fsal_attrib_list_t * p_parent_directory_attributes /*[IN/OU ]*/)
+fsal_status_t PTFSAL_unlink(struct fsal_obj_handle * dir_hdl,    /* IN */
+                          const char  * p_object_name,             /* IN */
+                          const struct req_op_context *p_context,   /* IN */
+                          struct attrlist * p_parent_attributes)   /* IN/OUT */
 {
 
   fsal_status_t status;
   int rc, errsv;
   fsi_stat_struct buffstat;
   fsal_accessflags_t access_mask = 0;
-  fsal_attrib_list_t parent_dir_attrs;
+  int mount_fd;
+  struct attrlist parent_dir_attrs;
+  struct pt_fsal_obj_handle *pt_hdl;
 
   /* sanity checks. */
-  if(!p_parent_directory_handle || !p_context || !p_object_name)
-    Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_unlink);
+  if(!dir_hdl || !p_context || !p_object_name)
+    return fsalstat(ERR_FSAL_FAULT, 0);
 
-  FSI_TRACE(FSI_DEBUG, "FSI - PTFSAL_unlink [%s] entry\n",p_object_name->name);
+  pt_hdl = container_of(dir_hdl, struct pt_fsal_obj_handle, obj_handle);
+  mount_fd = pt_get_root_fd(dir_hdl->export);
+
+  FSI_TRACE(FSI_DEBUG, "FSI - PTFSAL_unlink [%s] entry\n",p_object_name);
 
   /* get directory metadata */
-  parent_dir_attrs.asked_attributes = PTFS_SUPPORTED_ATTRIBUTES;
-  status = PTFSAL_getattrs(p_parent_directory_handle, p_context, 
-                           &parent_dir_attrs);
+  parent_dir_attrs.mask = dir_hdl->export->ops->fs_supported_attrs(dir_hdl->export);
+  status = PTFSAL_getattrs(dir_hdl->export, p_context, pt_hdl->handle,
+                             &parent_dir_attrs);
+
   if(FSAL_IS_ERROR(status))
-    ReturnStatus(status, INDEX_FSAL_unlink);
+    return status;
 
   /* build the child path */
 
   FSI_TRACE(FSI_DEBUG, "FSI - PTFSAL_unlink [%s] build child path\n",
-            p_object_name->name);
+            p_object_name);
 
   /* get file metadata */
-  rc = ptfsal_stat_by_parent_name(p_context, p_parent_directory_handle, 
-                                  p_object_name->name, &buffstat);
+  rc = ptfsal_stat_by_parent_name(p_context, pt_hdl, 
+                                  p_object_name, &buffstat);
   if (rc) {
       FSI_TRACE(FSI_DEBUG, "FSI - PTFSAL_unlink stat [%s] rc %d\n",
-                p_object_name->name, rc);
-      Return(posix2fsal_error(errno), errno, INDEX_FSAL_unlink);
+                p_object_name, rc);
+      return fsalstat(posix2fsal_error(errno), errno);
   }
 
   /* check access rights */
@@ -122,11 +127,11 @@ PTFSAL_unlink(fsal_handle_t      * p_parent_directory_handle,    /* IN */
   /* Sticky bit on the directory => the user who wants to delete the file 
    * must own it or its parent dir 
    */
-  if((fsal2unix_mode(parent_dir_attrs.mode) & S_ISVTX)
-     && parent_dir_attrs.owner != p_context->credential.user
-     && buffstat.st_uid != p_context->credential.user 
-     && p_context->credential.user != 0) {
-    Return(ERR_FSAL_ACCESS, 0, INDEX_FSAL_unlink);
+  if((fsal2unix_mode(parent_dir_attrs.mode) & S_ISVTX) 
+     && parent_dir_attrs.owner != p_context->creds->caller_uid
+     && buffstat.st_uid != p_context->creds->caller_uid
+     && p_context->creds->caller_uid != 0) {
+    return fsalstat(ERR_FSAL_ACCESS, 0);
   }
 
   /* client must be able to lookup the parent directory and modify it */
@@ -135,15 +140,13 @@ PTFSAL_unlink(fsal_handle_t      * p_parent_directory_handle,    /* IN */
   access_mask = FSAL_MODE_MASK_SET(FSAL_W_OK  | FSAL_X_OK) |
                 FSAL_ACE4_MASK_SET(FSAL_ACE_PERM_DELETE_CHILD);
 
-  if(!p_context->export_context->fe_static_fs_info->accesscheck_support)
-    status = fsal_internal_testAccess(p_context, access_mask, NULL, 
-                                      &parent_dir_attrs);
+  if(!dir_hdl->export->ops->fs_supports(dir_hdl->export, fso_accesscheck_support))
+    status = fsal_internal_testAccess(p_context, access_mask, &parent_dir_attrs);
   else
-    status = fsal_internal_access(p_context, p_parent_directory_handle, 
-                                  access_mask,
-                                  &parent_dir_attrs);
+    status = fsal_internal_access(mount_fd, p_context, pt_hdl->handle,
+                                  access_mask, &parent_dir_attrs);
   if(FSAL_IS_ERROR(status))
-    ReturnStatus(status, INDEX_FSAL_unlink);
+    return status;
 
   /******************************
    * DELETE FROM THE FILESYSTEM *
@@ -153,35 +156,34 @@ PTFSAL_unlink(fsal_handle_t      * p_parent_directory_handle,    /* IN */
    * else use 'unlink' 
    */
   if (S_ISDIR(buffstat.st_mode)) {
-    FSI_TRACE(FSI_DEBUG, "Deleting directory %s",p_object_name->name);
-    rc = ptfsal_rmdir(p_context, p_parent_directory_handle, 
-                      p_object_name->name);
+    FSI_TRACE(FSI_DEBUG, "Deleting directory %s",p_object_name);
+    rc = ptfsal_rmdir(p_context, pt_hdl, 
+                      p_object_name);
 
   } else {
-    FSI_TRACE(FSI_DEBUG, "Deleting file %s", p_object_name->name);
-    rc = ptfsal_unlink(p_context, p_parent_directory_handle, 
-                       p_object_name->name);
+    FSI_TRACE(FSI_DEBUG, "Deleting file %s", p_object_name);
+    rc = fsal_internal_unlink(mount_fd, pt_hdl->handle,
+                                 p_object_name, &buffstat);
   }
   if(rc) {
     errsv = errno;
-    Return(posix2fsal_error(errsv), errsv, INDEX_FSAL_unlink);
+    return fsalstat(posix2fsal_error(errsv), errsv);
   }
 
   /***********************
    * FILL THE ATTRIBUTES *
    ***********************/
 
-  if(p_parent_directory_attributes) {
+  if(p_parent_attributes) {
     status =
-      PTFSAL_getattrs(p_parent_directory_handle, p_context,
-                      p_parent_directory_attributes);
+      PTFSAL_getattrs(dir_hdl->export, p_context, pt_hdl->handle, 
+                      p_parent_attributes);
     if(FSAL_IS_ERROR(status)) {
-      FSAL_CLEAR_MASK(p_parent_directory_attributes->asked_attributes);
-      FSAL_SET_MASK(p_parent_directory_attributes->asked_attributes,
-                    FSAL_ATTR_RDATTR_ERR);
+          FSAL_CLEAR_MASK(p_parent_attributes->mask);
+          FSAL_SET_MASK(p_parent_attributes->mask, ATTR_RDATTR_ERR);
     }
   }
   /* OK */
-  Return(ERR_FSAL_NO_ERROR, 0, INDEX_FSAL_unlink);
+  return fsalstat(ERR_FSAL_NO_ERROR, 0);
 
 }

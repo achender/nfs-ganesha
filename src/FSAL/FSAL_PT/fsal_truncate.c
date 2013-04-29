@@ -55,18 +55,21 @@
 #include <sys/types.h>
 
 #include "pt_ganesha.h"
+#include "pt_methods.h"
 
 /**
  * FSAL_truncate:
  * Modify the data length of a regular file.
  *
- * \param filehandle (input):
+ * \param export (input):
+ *        For use of mount fd
+ * \param p_filehandle (input):
  *        Handle of the file is to be truncated.
- * \param cred (input):
+ * \param p_context (input):
  *        Authentication context for the operation (user,...).
  * \param length (input):
  *        The new data length for the file.
- * \param object_attributes (optionnal input/output):
+ * \param p_object_attributes (optionnal input/output):
  *        The post operation attributes of the file.
  *        As input, it defines the attributes that the caller
  *        wants to retrieve (by positioning flags into this structure)
@@ -78,39 +81,36 @@
  *        - ERR_FSAL_NO_ERROR     (no error)
  *        - Another error code if an error occurred.
  */
-
-fsal_status_t 
-PTFSAL_truncate(fsal_handle_t * p_filehandle,       /* IN */
-                fsal_op_context_t * p_context,      /* IN */
-                fsal_size_t length,                 /* IN */
-                fsal_file_t * file_descriptor,      /* IN */
-                fsal_attrib_list_t * p_object_attributes    /* [ IN/OUT ] */)
+fsal_status_t PTFSAL_truncate(struct fsal_export *export,            /* IN */
+                           struct pt_fsal_obj_handle * p_filehandle,     /* IN */
+                           const struct req_op_context * p_context,    /* IN */
+                           size_t length,                             /* IN */
+                           struct attrlist * p_object_attributes)  /* IN/OUT */
 {
 
   int rc=0, errsv;
   int fd = -1;
   fsal_status_t st;
   fsal_file_t file_desc;
-  ptfsal_op_context_t     * fsi_op_context     =
-    (ptfsal_op_context_t *)p_context;
-  ptfsal_export_context_t * fsi_export_context =
-    fsi_op_context->export_context;
+  int mount_fd;
 
   FSI_TRACE(FSI_DEBUG,"Truncate called, length=%d",length);
   /* sanity checks.
    * note : object_attributes is optional.
    */
-  if(!p_filehandle || !p_context)
-    Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_truncate);
+  if(!p_filehandle || !p_context || !export)
+    return fsalstat(ERR_FSAL_FAULT, 0);
 
-  ptfsal_print_handle(p_filehandle);
+  ptfsal_print_handle(p_filehandle->handle->data.handle.f_handle);
+  mount_fd = pt_get_root_fd(export);
+
   /* Check to see if we already have fd */
-  if (file_descriptor && file_descriptor->fd != 0)
+  if (p_filehandle && p_filehandle->u.file.fd != 0)
   {
-    fd = file_descriptor->fd;
+    fd = p_filehandle->u.file.fd;
     FSI_TRACE(FSI_DEBUG, "Truncating with fd=%d, truncate length=%d",
               fd,length );
-    rc = ptfsal_ftruncate(p_context, fd, length);
+    rc = ptfsal_ftruncate(p_context, export, fd, length);
     errsv = errno;
   }
 
@@ -121,28 +121,28 @@ PTFSAL_truncate(fsal_handle_t * p_filehandle,       /* IN */
     st = fsal_internal_handle2fd(p_context, p_filehandle, &fd, O_RDWR);
 
     if (FSAL_IS_ERROR(st))
-      ReturnStatus(st, INDEX_FSAL_truncate);
+      return st;
 
     /* Executes the PT truncate operation */
     FSI_TRACE(FSI_DEBUG, 
               "Truncating with POSIX truncate fd=%d, truncate length=%d",
               fd,length );
-    rc = ptfsal_ftruncate(p_context, fd, length);
+    rc = ptfsal_ftruncate(p_context, export, fd, length);
     errsv = errno;
 
     /* Before checking for truncate error, close the fd we opened */
     file_desc.fd = fd;
-    file_desc.export_id = fsi_export_context->pt_export_id; 
-    file_desc.uid = fsi_op_context->credential.user;
-    file_desc.gid = fsi_op_context->credential.group;
-    PTFSAL_close(&file_desc, p_context);
+    file_desc.export_id = export->exp_entry->id; 
+    file_desc.uid = p_context->creds->caller_uid;
+    file_desc.gid = p_context->creds->caller_gid;
+    PTFSAL_close(fd);
 
     /* Now check ftruncate and convert return code */
     if(rc) {
       if(errsv == ENOENT)
-        Return(ERR_FSAL_STALE, errsv, INDEX_FSAL_truncate);
+        return fsalstat(ERR_FSAL_STALE, errsv);
       else
-        Return(posix2fsal_error(errsv), errsv, INDEX_FSAL_truncate);
+        return fsalstat(posix2fsal_error(errsv), errsv);
     }
   }
 
@@ -152,18 +152,17 @@ PTFSAL_truncate(fsal_handle_t * p_filehandle,       /* IN */
 
     fsal_status_t st;
 
-    st = PTFSAL_getattrs(p_filehandle, p_context, p_object_attributes);
+    st = PTFSAL_getattrs(export, p_context, p_filehandle->handle, p_object_attributes);
 
     if(FSAL_IS_ERROR(st))
     {
-      FSAL_CLEAR_MASK(p_object_attributes->asked_attributes);
-      FSAL_SET_MASK(p_object_attributes->asked_attributes, 
-                    FSAL_ATTR_RDATTR_ERR);
+          FSAL_CLEAR_MASK(p_object_attributes->mask);
+          FSAL_SET_MASK(p_object_attributes->mask, ATTR_RDATTR_ERR);
     }
 
   }
  
   /* No error occurred */
-  Return(ERR_FSAL_NO_ERROR, 0, INDEX_FSAL_truncate);
+  return fsalstat(ERR_FSAL_NO_ERROR, 0);
 
 }

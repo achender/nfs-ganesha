@@ -57,6 +57,7 @@
 
 #include "config_parsing.h"
 #include "err_fsal.h"
+#include "fsal_types.h"
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -75,8 +76,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-
-#include "fsal_glue_const.h"
 
 #define fsal_handle_t ptfsal_handle_t
 #define fsal_op_context_t ptfsal_op_context_t
@@ -131,10 +130,6 @@ struct file_handle
 };
 #endif
 
-static inline size_t pt_sizeof_handle(struct file_handle *hdl)
-{
-  return offsetof(struct file_handle, f_handle) + OPENHANDLE_KEY_LEN;
-}
 /** end of open by handle structures */
 
 /* Allow aliasing of fsal_handle_t since FSALs will be
@@ -150,14 +145,19 @@ typedef struct
 
 /** Authentification context.    */
 
+static inline size_t pt_sizeof_handle(ptfsal_handle_t *fh)
+{
+  return sizeof(ptfsal_handle_t);
+}
+
 typedef struct
 {
   /* Must be the first entry in this structure */
-  fsal_staticfsinfo_t * fe_static_fs_info;  
-  exportlist_t        * fe_export;
+  struct fsal_staticfsinfo_t * fe_static_fs_info;  
+  exportlist_t               * fe_export;
 
   /* Warning: This string is not currently filled in or used. */
-  char mount_point[FSAL_MAX_PATH_LEN];
+  char mount_point[1024];
 
   int mount_root_fd;
   ptfsal_handle_t mount_root_handle;
@@ -173,8 +173,8 @@ typedef struct
 {
   /* Must be the first entry in this structure */
   ptfsal_export_context_t *export_context;     
-  struct user_credentials credential;
-  msectimer_t latency;
+  struct user_cred credential;
+  int64_t latency;
   unsigned int count;
 } ptfsal_op_context_t;
 
@@ -185,6 +185,7 @@ typedef struct
 {
   int  use_kernel_module_interface;
   char open_by_handle_dev_file[MAXPATHLEN];
+  int  internal_handle_timeout;
 } ptfs_specific_initinfo_t;
 
 /**< directory cookie */
@@ -205,8 +206,8 @@ typedef union {
 typedef struct
 {
   int fd;
-  ptfsal_op_context_t context;    /* credential for accessing the directory */
-  fsal_path_t path;
+  struct req_op_context context;    /* credential for accessing the directory */
+  const char path[1024];
   unsigned int dir_offset;
   ptfsal_handle_t handle;
 } ptfsal_dir_t;
@@ -227,7 +228,7 @@ typedef struct
 typedef struct fsal_xstat__
 {
   int attr_valid;
-  struct stat64 buffstat;
+  struct stat buffstat;
   char buffacl[GPFS_ACL_BUF_SIZE];
 } ptfsal_xstat_t;
 

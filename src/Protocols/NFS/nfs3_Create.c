@@ -67,6 +67,8 @@
  *
  */
 
+typedef int jv_test;
+
 int
 nfs_Create(nfs_arg_t *arg,
            exportlist_t *export,

@@ -11,17 +11,22 @@
 #ifndef __FSI_IPC_CCL_H__
 #define __FSI_IPC_CCL_H__
 
+
+int abcdef;
+typedef int jv_4;
+
+
 // Linux includes
+#include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
 #include <sys/time.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -36,9 +41,64 @@
 extern "C" {
 #endif
 
-#include "../fsi_ipc_common.h"
+// ------------------------------------------------------
+// FSI defines -- must match those in fsi_ipc_common.h
+// ------------------------------------------------------
+#define FSI_CCL_IPC_OPEN_IP_ADDR_STR_SIZE        128
+#define MAX_FSI_CCL_IPC_SHMEM_BUF_PER_STREAM       1
+#define FSI_CCL_IPC_SHMEM_WRITEBUF_PER_BUF         4
+#define FSI_CCL_IPC_SHMEM_READBUF_PER_BUF          4
+#define FSI_CCL_MAX_STREAMS                      800
+#define FSI_CCL_IPC_EOK                            0
+#define FSI_CCL_IPC_CLOSE_HANDLE_REQ_Q_KEY    0x7656
+#define FSI_CCL_IPC_CLOSE_HANDLE_RSP_Q_KEY    0x7657
 
-// FSI IPC defines
+// 8208 == SymLinkReqMsg size
+// 14 * 8 == CommonMsgHdr size
+// IP_ADDR == extra data in CommonMsgHdr
+#define SYMLINK_REQ_MSG_SIZE    8208
+#define COMMON_MSG_HDR_SIZE  (14 * 8)
+#define FSI_CCL_IPC_MSG_SIZE (SYMLINK_REQ_MSG_SIZE + COMMON_MSG_HDR_SIZE +     \
+                              FSI_CCL_IPC_OPEN_IP_ADDR_STR_SIZE)
+
+// matches "PersistentHandle" 
+#define FSI_CCL_PERSISTENT_HANDLE_N_BYTES         32
+struct CCLPersistentHandle {
+  char handle[FSI_CCL_PERSISTENT_HANDLE_N_BYTES];
+};
+
+// matches "msg_t"
+struct ccl_msg_t {
+  long int mtype;
+  char     mtext[FSI_CCL_IPC_MSG_SIZE];
+};
+
+// matches ClientOpDynamicFsInfoRspMsg
+struct CCLClientOpDynamicFsInfoRspMsg {
+  uint64_t        totalBytes;
+  uint64_t        freeBytes;
+  uint64_t        availableBytes;
+  uint64_t        totalFiles;
+  uint64_t        freeFiles;
+  uint64_t        availableFiles;
+  struct timespec time;
+};
+
+// ----------------------------------------------------
+// END CCL matching definitions
+// ----------------------------------------------------
+
+// needed for use with locking macros
+#define CCL_UP_MUTEX_LOCK   ccl_up_mutex_lock
+#define CCL_UP_MUTEX_UNLOCK ccl_up_mutex_unlock
+#define CCL_LOG             ccl_log
+
+// CCL Version to ensure that Ganesha FSAL and CCL does not go out of sync
+// We use "PT-Version.Minor" the build number when this file changes. The
+// intent is not to change this for every minor. For instance, the current
+// minor may be 172, but the version may remain "4.1.0.164", indicating that
+// the last minor this file changed is in minor 164. 
+#define PT_FSI_CCL_VERSION "4.1.0.191" 
 
 #define UNUSED_ARG(arg) do { (void)(arg); } while (0)
 
@@ -46,8 +106,6 @@ extern "C" {
 
 #define FSI_BLOCK_ALIGN(x, blocksize) \
 (((x) % (blocksize)) ? (((x) / (blocksize)) * (blocksize)) : (x))
-
-#define PT_FSI_CCL_VERSION "3.3.1.102"
 
 #define FSI_COMMAND_TIMEOUT_SEC      900 // When polling for results, number
                                          // of seconds to try before timingout
@@ -61,10 +119,6 @@ extern "C" {
 #define CCL_ON_DEMAND_HANDLE_TIMEOUT_SEC       15   // Timeout for on-demand
                                                     // thread looking for
                                                     // handles to close
-
-// FSI IPC getlock constants
-#define FSI_IPC_GETLOCK_PTYPE                  2
-#define FSI_IPC_GETLOCK_PPID                   0
 
 #define PTFSAL_FILESYSTEM_NUMBER              77
 #define FSI_IPC_MSGID_BASE               5000000
@@ -139,7 +193,7 @@ compile_time_check_func(const char * fmt, ...)
 
 #define WAIT_SHMEM_ATTACH()                                                \
 {                                                                          \
-  while (g_shm_at_fsal == 0) {                                             \
+  while (g_shm_at == 0) {                                                  \
     FSI_TRACE(FSI_INFO, "waiting for shmem attach");                       \
     sleep(1);                                                              \
   }                                                                        \
@@ -149,11 +203,8 @@ compile_time_check_func(const char * fmt, ...)
 #define CCL_CLOSE_STYLE_FIRE_AND_FORGET    1
 #define CCL_CLOSE_STYLE_NO_INDEX           2
 
-#define FSAL_MAX_PATH_LEN PATH_MAX
-
 extern int       g_shm_id;              // SHM ID
 extern char    * g_shm_at;              // SHM Base Address
-extern char    * g_shm_at_fsal;              // SHM Base Address
 extern int       g_io_req_msgq;
 extern int       g_io_rsp_msgq;
 extern int       g_non_io_req_msgq;
@@ -163,36 +214,19 @@ extern int       g_shmem_rsp_msgq;
 extern char      g_chdir_dirpath[PATH_MAX];
 extern uint64_t  g_client_pid;
 extern uint64_t  g_server_pid;
-extern struct file_handles_struct_t g_fsi_handles;  // FSI client
-                                                    // handles
-extern struct dir_handles_struct_t  g_fsi_dir_handles; // FSI client Dir
-                                                       // handles
-extern struct acl_handles_struct_t  g_fsi_acl_handles; // FSI client ACL
-                                                       // handles
+extern struct    file_handles_struct_t g_fsi_handles;     // FSI client
+                                                          // handles
+extern struct    dir_handles_struct_t  g_fsi_dir_handles; // FSI client Dir
+                                                          // handles
+extern struct    acl_handles_struct_t  g_fsi_acl_handles; // FSI client ACL
+                                                          // handles
 
 extern uint64_t  g_client_trans_id;  // FSI global transaction id
 extern int       g_close_trace;      // FSI global trace of io rates at close
 extern int       g_multithreaded;    // ganesha = true, samba = false
 
-// from fsi_ipc_client_statistics.c
-extern struct timeval            g_next_log_time;
-extern struct timeval            g_curr_log_time;
-extern struct timeval            g_last_log_time;
-extern struct timeval            g_last_io_completed;
-extern struct timeval            g_begin_io_idle_time;
-extern struct ipc_client_stats_t g_client_bytes_read;
-extern struct ipc_client_stats_t g_client_bytes_written;
-extern struct ipc_client_stats_t g_ipc_vfs_xfr_time;    // usecs
-extern struct ipc_client_stats_t g_client_io_idle_time;  // usecs
-extern uint64_t                  g_num_reads_in_progress;
-extern uint64_t                  g_num_writes_in_progress;
-extern uint64_t                  g_stat_log_interval;
-extern char                      g_client_address[];
+extern char      g_client_address[];
 
-
-#define SAMBA_FSI_IPC_PARAM_NAME      "fsiparam"  // To designate as our parms
-#define SAMBA_EXPORT_ID_PARAM_NAME    "exportid"  // For ExportID
-#define SAMBA_STATDELTA_PARAM_NAME    "statdelta" // For Statistics Output
 #define MAX_FSI_PERF_COUNT            1000        // for m_perf_xxx counters
 
 // enum for client buffer return code state
@@ -228,15 +262,6 @@ struct io_buf_status_t {
   uint64_t  m_trans_id;                 // transaction id
 };
 
-// --------------------------------------------------------------------------
-// file statistics structure
-// --------------------------------------------------------------------------
-// NOTE before 81020872 this use to be linux stat struct
-// now it is defined to look very similiar but it does not
-// align exactly like the linust struct stat, the field names
-// are kept the same but it may impact ganesha protoype
-//
-// typedef struct stat fsi_stat_struct;
 typedef struct fsi_stat_struct__ {
   uint64_t                st_dev;          // Device
   uint64_t                st_ino;          // File serial number
@@ -249,11 +274,11 @@ typedef struct fsi_stat_struct__ {
   uint64_t                st_atime_sec;    // Time of last access  sec only
   uint64_t                st_mtime_sec;    // Time of last modification  sec
   uint64_t                st_ctime_sec;    // Time of last change  sec
-  //struct timespec         st_btime;      // Birthtime  not used
+  uint64_t                st_btime_sec;    // Birthtime
   uint64_t                st_blksize;      // Optimal block size for I/O
   uint64_t                st_blocks;       // Number of 512-byte blocks
                                            // allocated
-  struct PersistentHandle st_persistentHandle;
+  struct CCLPersistentHandle st_persistentHandle;
 } fsi_stat_struct;
 
 
@@ -276,8 +301,8 @@ struct file_handle_t {
   int                    m_hndl_in_use;       // used to flag available entries
   int                    m_prev_io_op;        // enumerated I/O operation
                                               // (read/write/other I/O)
-  struct io_buf_status_t m_writebuf_state[MAX_FSI_IPC_SHMEM_BUF_PER_STREAM *
-                                          FSI_IPC_SHMEM_WRITEBUF_PER_BUF];
+  struct io_buf_status_t m_writebuf_state[MAX_FSI_CCL_IPC_SHMEM_BUF_PER_STREAM *
+                                          FSI_CCL_IPC_SHMEM_WRITEBUF_PER_BUF];
                                               // one entry per write data buffer
   int                    m_writebuf_cnt;      // how many write buffers this
                                               // handle actually uses
@@ -287,12 +312,12 @@ struct file_handle_t {
                                               // filling write buffer
   uint64_t               m_write_inuse_offset; // offset of first byte in
                                               // filling buffer
-  struct io_buf_status_t m_readbuf_state [MAX_FSI_IPC_SHMEM_BUF_PER_STREAM *
-                                          FSI_IPC_SHMEM_READBUF_PER_BUF];
+  struct io_buf_status_t m_readbuf_state [MAX_FSI_CCL_IPC_SHMEM_BUF_PER_STREAM *
+                                          FSI_CCL_IPC_SHMEM_READBUF_PER_BUF];
                                               // one entry per read data buffer
   int                    m_readbuf_cnt;       // how many read buffers this
                                               // handle actually uses
-  uint64_t               m_shm_handle[MAX_FSI_IPC_SHMEM_BUF_PER_STREAM];
+  uint64_t               m_shm_handle[MAX_FSI_CCL_IPC_SHMEM_BUF_PER_STREAM];
                                               // SHM handle array
   int                    m_first_write_done;  // set if we are writing and first
                                               // write is complete
@@ -324,8 +349,6 @@ struct file_handle_t {
                                               // if m_dir_not_file_flag is
                                               // set
   uint64_t               m_resourceHandle;    // handle for resource management
-//  pthread_mutex_t        m_io_mutex;          // used to manage multithread
-//                                              // NFS io operations
   struct timeval         m_perf_pwrite_start[MAX_FSI_PERF_COUNT];
   struct timeval         m_perf_pwrite_end[MAX_FSI_PERF_COUNT];
   struct timeval         m_perf_aio_start[MAX_FSI_PERF_COUNT];
@@ -349,7 +372,8 @@ struct file_handle_t {
 /// @brief  contains filehandles
 // ----------------------------------------------------------------------------
 struct file_handles_struct_t {
-  struct file_handle_t m_handle[FSI_MAX_STREAMS + FSI_CIFS_RESERVED_STREAMS];
+  struct file_handle_t m_handle[FSI_CCL_MAX_STREAMS +
+                                FSI_CIFS_RESERVED_STREAMS];
   int                  m_count;              // maximum handle used
 };
 
@@ -382,7 +406,7 @@ struct dir_handle_t {
 /// @brief  contains directory handles
 // ----------------------------------------------------------------------------
 struct dir_handles_struct_t {
-  struct dir_handle_t m_dir_handle[FSI_MAX_STREAMS];
+  struct dir_handle_t m_dir_handle[FSI_CCL_MAX_STREAMS];
   int                 m_count;
 };
 
@@ -402,15 +426,13 @@ struct acl_handle_t {
 /// @brief  contains ACL handles
 // ----------------------------------------------------------------------------
 struct acl_handles_struct_t {
-  struct acl_handle_t m_acl_handle[FSI_MAX_STREAMS];
+  struct acl_handle_t m_acl_handle[FSI_CCL_MAX_STREAMS];
   int                 m_count;
 };
 
 // ----------------------------------------------------------------------------
 // Structures for CCL abstraction
 // ----------------------------------------------------------------------------
-#define uint32 uint32_t
-
 #define NONIO_MSG_TYPE \
   ((g_multithreaded) ? (unsigned long)(syscall(SYS_gettid)) : g_client_pid)
 #define MULTITHREADED 1
@@ -479,6 +501,10 @@ struct ipc_client_stats_t {
 // Defines for IO Idle time statistic collection,  this is time we are
 // idle waiting for user to send a read or write or doing other operations
 // ----------------------------------------------------------------------------
+extern struct timeval            g_begin_io_idle_time;
+extern struct ipc_client_stats_t g_client_io_idle_time;
+extern uint64_t                  g_num_reads_in_progress;
+extern uint64_t                  g_num_writes_in_progress;
 
 #define START_IO_IDLE_CLOCK()                                                 \
 {                                                                             \
@@ -511,20 +537,38 @@ struct ipc_client_stats_t {
   memset(&g_begin_io_idle_time, 0, sizeof(g_begin_io_idle_time));             \
 }
 
+#define STATS_MUTEX_LOCK()                                                    \
+{                                                                             \
+ if (g_multithreaded) {                                                       \
+   CCL_UP_MUTEX_LOCK(&g_statistics_mutex);                                    \
+ } else {                                                                     \
+   ccl_up_mutex_lock(&g_statistics_mutex);                                    \
+ }                                                                            \
+}                                                                             \
+
+#define STATS_MUTEX_UNLOCK()                                                  \
+{                                                                             \
+ if (g_multithreaded) {                                                       \
+   CCL_UP_MUTEX_UNLOCK(&g_statistics_mutex);                                  \
+ } else {                                                                     \
+   ccl_up_mutex_unlock(&g_statistics_mutex);                                  \
+ }                                                                            \
+}                                                                             \
+
 #define IDLE_STAT_READ_START()                                                \
 {                                                                             \
-  ccl_up_mutex_lock(&g_statistics_mutex);                                     \
-  g_num_reads_in_progress++;                                                  \
-  if (((g_num_reads_in_progress + g_num_writes_in_progress) == 1) &&          \
-      (g_begin_io_idle_time.tv_sec != 0)) {                                   \
-    END_IO_IDLE_CLOCK();                                                      \
-  }                                                                           \
-  ccl_up_mutex_unlock(&g_statistics_mutex);                                   \
+ STATS_MUTEX_LOCK();                                                          \
+ g_num_reads_in_progress++;						                              \
+ if (((g_num_reads_in_progress + g_num_writes_in_progress) == 1) &&	          \
+     (g_begin_io_idle_time.tv_sec != 0)) {			                          \
+   END_IO_IDLE_CLOCK();						                                  \
+ }		                                                                      \
+ STATS_MUTEX_UNLOCK();                                                        \
 }
 
 #define IDLE_STAT_READ_END()                                                  \
 {                                                                             \
-  ccl_up_mutex_lock(&g_statistics_mutex);                                     \
+  STATS_MUTEX_LOCK();                                                         \
   if (g_num_reads_in_progress == 0) {                                         \
     FSI_TRACE(FSI_ERR, "IO Idle read count off, distrust IDLE stat ");        \
   }                                                                           \
@@ -532,23 +576,23 @@ struct ipc_client_stats_t {
   if ((g_num_reads_in_progress + g_num_writes_in_progress) == 0) {            \
     START_IO_IDLE_CLOCK();                                                    \
   }                                                                           \
-  ccl_up_mutex_unlock(&g_statistics_mutex);                                   \
+  STATS_MUTEX_UNLOCK();                                                       \
 }
 
 #define IDLE_STAT_WRITE_START()                                               \
 {                                                                             \
-  ccl_up_mutex_lock(&g_statistics_mutex);                                     \
+  STATS_MUTEX_LOCK();                                                         \
   g_num_writes_in_progress++;                                                 \
   if (((g_num_reads_in_progress + g_num_writes_in_progress) == 1) &&          \
       (g_begin_io_idle_time.tv_sec != 0)) {                                   \
     END_IO_IDLE_CLOCK();                                                      \
   }                                                                           \
-  ccl_up_mutex_unlock(&g_statistics_mutex);                                   \
+  STATS_MUTEX_UNLOCK();                                                       \
 }
 
 #define IDLE_STAT_WRITE_END()                                                 \
 {                                                                             \
-  ccl_up_mutex_lock(&g_statistics_mutex);                                     \
+  STATS_MUTEX_LOCK();              				                              \
   if (g_num_writes_in_progress == 0) {                                        \
     FSI_TRACE(FSI_DEBUG, "IO Idle write count off, distrust IDLE stat ");     \
   }                                                                           \
@@ -556,7 +600,7 @@ struct ipc_client_stats_t {
   if ((g_num_reads_in_progress + g_num_writes_in_progress) == 0) {            \
     START_IO_IDLE_CLOCK();                                                    \
   }                                                                           \
-  ccl_up_mutex_unlock(&g_statistics_mutex);                                   \
+  STATS_MUTEX_UNLOCK();                                                       \
 }
 
 // ---------------------------------------------------------------------------
@@ -587,6 +631,15 @@ struct ipc_client_stats_t {
 #define CCL_MAX_CLOSING_TO_CLOSE_POLLING_COUNT 480
 
 // ---------------------------------------------------------------------------
+// Forward declarations for structs used in CCL function prototypes
+// ---------------------------------------------------------------------------
+struct CommonShmemDataHdr;
+struct CommonMsgHdr;
+struct ClientOpPreadReqMsg;
+struct ClientOpStatRsp;
+struct ClientOpDynamicFsInfoRspMsg;
+
+// ---------------------------------------------------------------------------
 // Function Prototypes
 // ---------------------------------------------------------------------------
 int ccl_check_version(char *version);
@@ -610,6 +663,9 @@ int ccl_cache_name_and_handle(char *handle, char *name);
 int ccl_check_handle_index (int handle_index);
 int ccl_find_handle_by_name_and_export(const char * filename,
                                        ccl_context_t * handle);
+int ccl_update_cache_stat(const char * filename,
+                          uint64_t     newMode,
+                          uint64_t     export_id);
 int ccl_find_dir_handle_by_name_and_export(const char * filename,
                                           ccl_context_t * handle);
 int ccl_set_stat_buf(fsi_stat_struct              * dest,
@@ -621,7 +677,7 @@ int ccl_stat(ccl_context_t * handle,
 int ccl_fstat(int                 handle_index,
               fsi_stat_struct   * sbuf);
 int ccl_stat_by_handle(ccl_context_t           * context,
-                       struct PersistentHandle * handle,
+                       struct CCLPersistentHandle * handle,
                        fsi_stat_struct         * sbuf);
 uint64_t get_acl_resource_handle(uint64_t aclHandle);
 int have_pending_io_response(int handle_index);
@@ -679,7 +735,8 @@ int ccl_chown(ccl_context_t * handle,
 int ccl_ntimes(ccl_context_t * handle,
                const char        * filename,
                uint64_t            atime,
-               uint64_t            mtime);
+               uint64_t            mtime,
+               uint64_t            btime);
 int ccl_mkdir(ccl_context_t  * handle,
                const char        * path,
                mode_t              mode);
@@ -703,7 +760,11 @@ int ccl_rename(ccl_context_t * handle,
 int ccl_opendir(ccl_context_t * handle,
                  const char        * filename,
                  const char        * mask,
-                 uint32              attr);
+                 uint32_t            attr);
+int ccl_fdopendir(ccl_context_t * handle,
+                  int             handle_index,
+                  const char    * mask,
+                  uint32_t        attributes);
 int ccl_closedir(ccl_context_t * handle,
                   struct fsi_struct_dir_t * dirp);
 int ccl_readdir(ccl_context_t * handle,
@@ -744,13 +805,13 @@ int ccl_close(ccl_context_t * handle,
               int             close_style);
 int merge_errno_rc(int rc_a,
                    int rc_b);
-int get_any_io_responses(int     handle_index,
-                         int   * p_combined_rc,
-                         struct msg_t* p_msg);
+int get_any_io_responses(int                handle_index,
+                         int              * p_combined_rc,
+                         struct ccl_msg_t * p_msg);
 void issue_read_ahead(struct file_handle_t       * p_pread_hndl,
                       int                          handle_index,
                       uint64_t                     offset,
-                      struct msg_t               * p_msg,
+                      struct ccl_msg_t           * p_msg,
                       struct CommonMsgHdr        * p_pread_hdr,
                       struct ClientOpPreadReqMsg * p_pread_req,
                       const ccl_context_t        * handle,
@@ -759,8 +820,8 @@ void load_deferred_io_rc(int handle_index,
                          int cur_error);
 int merge_errno_rc(int rc_a,
                    int rc_b);
-int parse_io_response(int     handle_index,
-                      struct msg_t * p_msg);
+int parse_io_response(int                handle_index,
+                      struct ccl_msg_t * p_msg);
 int read_existing_data(struct file_handle_t * p_pread_hndl,
                        char                 * p_data,
                        uint64_t             * p_cur_offset,
@@ -771,7 +832,7 @@ int read_existing_data(struct file_handle_t * p_pread_hndl,
 int update_read_status(struct file_handle_t        * p_pread_hndl,
                        int                           handle_index,
                        uint64_t                      cur_offset,
-                       struct msg_t                * p_msg,
+                       struct ccl_msg_t            * p_msg,
                        struct CommonMsgHdr         * p_pread_hdr,
                        struct ClientOpPreadReqMsg  * p_pread_req,
                        const ccl_context_t         * handle,
@@ -782,9 +843,9 @@ int verify_io_response(int                      transaction_type,
                        struct CommonMsgHdr           * p_msg_hdr,
                        struct CommonShmemDataHdr     * p_shmem_hdr,
                        struct io_buf_status_t * p_io_buf_status);
-int wait_free_write_buf(int     handle_index,
-                        int   * p_combined_rc,
-                        struct msg_t* p_msg);
+int wait_free_write_buf(int                handle_index,
+                        int              * p_combined_rc,
+                        struct ccl_msg_t * p_msg);
 int flush_write_buffer(int handle_index, ccl_context_t * handle);
 int wait_for_io_results(int handle_index);
 int synchronous_flush_write_buffer(int handle_index, ccl_context_t * handle);
@@ -847,10 +908,10 @@ int ccl_sys_acl_free_acl(ccl_context_t * handle,
 // Prototypes - new for Ganesha
 int ccl_name_to_handle(ccl_context_t           * pvfs_handle,
                        char                    * path,
-                       struct PersistentHandle * phandle);
-int ccl_handle_to_name(ccl_context_t           * pvfs_handle,
-                       struct PersistentHandle * phandle,
-                       char                    * path);
+                       struct CCLPersistentHandle * phandle);
+int ccl_handle_to_name(ccl_context_t              * pvfs_handle,
+                       struct CCLPersistentHandle * phandle,
+                       char                       * path);
 int ccl_dynamic_fsinfo(ccl_context_t                      * pvfs_handle,
                        char                               * path,
                        struct ClientOpDynamicFsInfoRspMsg * pfs_info);
@@ -874,32 +935,27 @@ int ccl_fsal_try_fastopen_by_index(ccl_context_t       * handle,
 int ccl_find_oldest_handle();
 bool ccl_can_close_handle(int handle_index,
                           int timeout);
+int ccl_implicit_close_for_nfs(int handle_index_to_close, int close_style);
+int ccl_up_mutex_lock(pthread_mutex_t *mutex);
+int ccl_up_mutex_unlock(pthread_mutex_t *mutex);
+unsigned long ccl_up_self();
+void ccl_close_listener(int closeHandle_req_msgq,
+                        int closeHandle_rsp_msgq);
 
-// ---------------------------------------------------------------------------
-// CCL Up Call ptorotypes - both the Samba VFS layer and the Ganesha PTFSAL
-//     Layer provide a copy of these functions and CCL call them (up calls)
-//     for the functions.
-// ---------------------------------------------------------------------------
-extern int ccl_up_mutex_lock(pthread_mutex_t *mutex);
-extern int ccl_up_mutex_unlock(pthread_mutex_t *mutex);
-extern unsigned long ccl_up_self();
-
-// externs to globals the Samba VFS or Ganesha must provide
 // dir handle mutex
 extern pthread_mutex_t g_dir_mutex;
 // acl handle mutex
 extern pthread_mutex_t g_acl_mutex;
 // file handle processing mutex
-extern pthread_mutex_t g_handle_mutex;
+extern pthread_mutex_t g_file_mutex;
+extern pthread_mutex_t g_statistics_mutex; 
 // only one thread can parse an io at a time
 extern pthread_mutex_t g_parseio_mutex;
-// only one thread can change global transid at a time
-extern pthread_mutex_t g_transid_mutex;
-extern pthread_mutex_t g_non_io_mutex;
+extern pthread_mutex_t g_io_handle_mutex[];
+extern pthread_mutex_t g_dir_handle_mutex[];
+extern pthread_mutex_t g_io_operation_mutex[];
 extern pthread_mutex_t g_statistics_mutex;
-extern pthread_mutex_t g_close_mutex[FSI_MAX_STREAMS + FSI_CIFS_RESERVED_STREAMS];
-// Global I/O mutex
-extern pthread_mutex_t g_io_mutex;
+
 #endif // ifndef __FSI_IPC_CCL_H__
 
 #ifdef __cplusplus

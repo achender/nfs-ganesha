@@ -33,8 +33,9 @@
  */
 #ifndef _FSAL_CONVERTION_H
 #define _FSAL_CONVERTION_H
-
+typedef int jv_1;
 #include "fsi_ipc_ccl.h"
+typedef int jv_2;
 #include "fsal.h"
 
 /* convert error codes */
@@ -50,17 +51,16 @@ int fsal2posix_testperm(fsal_accessflags_t testperm);
  * Converts POSIX attributes (struct stat) to FSAL attributes 
  * (fsal_attrib_list_t)
  */
-fsal_status_t posix2fsal_attributes(fsi_stat_struct *p_buffstat,
-                                    fsal_attrib_list_t * p_fsalattr_out);
-
+fsal_status_t posix2fsal_attributes(struct stat *p_buffstat,
+                                    struct attrlist * p_fsalattr_out);
 /** converts FSAL access mode to unix mode. */
-mode_t fsal2unix_mode(fsal_accessmode_t fsal_mode);
+mode_t fsal2unix_mode(mode_t fsal_mode);
 
 /** converts unix access mode to fsal mode. */
-fsal_accessmode_t unix2fsal_mode(mode_t unix_mode);
+mode_t unix2fsal_mode(mode_t unix_mode);
 
 /** converts hpss object type to fsal object type. */
-fsal_nodetype_t posix2fsal_type(mode_t posix_type_in);
+object_file_type_t posix2fsal_type(mode_t posix_type_in);
 
 /** converts posix fsid to fsal FSid. */
 fsal_fsid_t posix2fsal_fsid(dev_t posix_devid);
@@ -70,7 +70,7 @@ fsal_fsid_t posix2fsal_fsid(dev_t posix_devid);
  * Convert POSIX time structure (time_t)
  * to FSAL time type (fsal_time_t).
  */
-fsal_time_t posix2fsal_time(time_t tsec, time_t nsec);
+struct timespec posix2fsal_time(time_t tsec, time_t nsec);
 
 /**
  * fsal2posix_time:

@@ -74,7 +74,7 @@ PTFSAL_getattrs(fsal_handle_t      * p_filehandle,        /* IN */
                 fsal_attrib_list_t * p_object_attributes  /* IN/OUT */)
 {
   fsal_status_t   st;
-  int             stat_rc;
+  int             stat_rc, err = 0;
   fsi_stat_struct buffstat;
   ptfsal_op_context_t     * fsi_op_context  = (ptfsal_op_context_t *)p_context;
   ptfsal_export_context_t * fsi_export_context = 
@@ -90,9 +90,16 @@ PTFSAL_getattrs(fsal_handle_t      * p_filehandle,        /* IN */
   }
 
   stat_rc = ptfsal_stat_by_handle(p_filehandle, p_context, &buffstat);
+  if (stat_rc > 0)
+     err = stat_rc;
+  else if (stat_rc < 0)
+     err = errno;
 
-  if (stat_rc) {
-    Return(ERR_FSAL_INVAL, errno, INDEX_FSAL_getattrs);
+  if (err == ENOENT)
+     err = ESTALE;
+
+  if (err) {
+    Return(posix2fsal_error(err), err, INDEX_FSAL_getattrs);
   }
 
   /* convert attributes */

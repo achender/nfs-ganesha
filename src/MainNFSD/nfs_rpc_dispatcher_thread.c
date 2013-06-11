@@ -764,7 +764,7 @@ static u_int nfs_rpc_rdvs(SVCXPRT *xprt, SVCXPRT *newxprt, const u_int flags,
                           void *u_data)
 {
     static uint32_t next_chan = TCP_EVCHAN_0;
-    pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+    static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
     uint32_t tchan;
 
     pthread_mutex_lock(&mtx);
@@ -877,7 +877,8 @@ thr_stallq(void *arg)
                 pthread_mutex_unlock(&xprt->xp_lock);
                 (void) svc_rqst_rearm_events(xprt, SVC_RQST_FLAG_NONE);
                 /* drop stallq ref */
-                gsh_xprt_unref(xprt, XPRT_PRIVATE_FLAG_NONE);
+                gsh_xprt_unref(xprt, XPRT_PRIVATE_FLAG_NONE, __func__,
+                    __LINE__);
                 goto restart;
             }
         }
@@ -912,10 +913,10 @@ nfs_rpc_cond_stall_xprt(SVCXPRT *xprt)
         return (FALSE);
     }
 
-    /* XXX can't happen */
     if (unlikely(xu->flags & XPRT_PRIVATE_FLAG_STALLED)) {
-        pthread_mutex_unlock(&xprt->xp_lock);
-        LogDebug(COMPONENT_DISPATCH, "xprt %p already stalled (oops)",
+        /* release xprt refcnt */
+        SVC_RELEASE(xprt, SVC_RELEASE_FLAG_LOCKED);
+        LogDebug(COMPONENT_DISPATCH, "xprt %p already stalled",
                  xprt);
         return (TRUE);
     }
@@ -1469,7 +1470,8 @@ thr_decode_rpc_request(fridge_thr_contex_t *thr_ctx, SVCXPRT *xprt)
             goto finish;
 
         /* update accounting */
-        if (! gsh_xprt_ref(xprt, XPRT_PRIVATE_FLAG_INCREQ)) {
+        if (! gsh_xprt_ref(xprt, XPRT_PRIVATE_FLAG_INCREQ, __func__,
+                           __LINE__)) {
             stat = XPRT_DIED;
             goto finish;
         }
@@ -1540,7 +1542,7 @@ thr_decode_rpc_requests(void *arg)
         SVC_DESTROY(xprt);
 
     /* update accounting, clear decoding flag */
-    gsh_xprt_unref(xprt, XPRT_PRIVATE_FLAG_DECODING);
+    gsh_xprt_unref(xprt, XPRT_PRIVATE_FLAG_DECODING, __func__, __LINE__);
 
   return (NULL);
 }
@@ -1670,6 +1672,8 @@ nfs_rpc_getreq_ng(SVCXPRT *xprt /*, int chan_id */)
                      __tirpc_dcounter, xprt);
         thread_delay_ms(5);
         (void) svc_rqst_rearm_events(xprt, SVC_RQST_FLAG_NONE);
+        /* release xprt refcnt */
+        SVC_RELEASE(xprt, SVC_RELEASE_FLAG_NONE);
         goto out;
     }
 

@@ -15,6 +15,7 @@ set(VERSION_COMMENT
   "GANESHA 64 bits compliant. FSAL_PROXY re-exports NFSv3. RPCSEC_GSS support (partial). FUSELIKE added"
 )
 
+
 # find out which platform we are building on
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(LINUX ON)
@@ -761,6 +762,12 @@ set(_USE_9P_RDMA ${_USE_9P_RDMA}
   CACHE BOOL
    "enable 9P_RDMA support"
    FORCE)
+
+set(RELEASE 2.0.0-1)
+set(DIST_VER "")
+if(USE_FSAL_PT)
+  set(DIST_VER ptv4.1_rev_11)
+endif(USE_FSAL_PT)
 
 # Now create a useable config.h
 configure_file(

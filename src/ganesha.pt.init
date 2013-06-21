@@ -30,7 +30,7 @@
 # Check for and source configuration file otherwise set defaults
 [ -f /etc/sysconfig/nfs ] && . /etc/sysconfig/nfs
 
-PATHPROG=/usr/bin/pt.ganesha.nfsd
+PATHPROG=/usr/bin/ganesha.nfsd
 PROG=pt.ganesha.nfsd
 LOGFILE=/pt_work/log/ganesha/nfs-ganesha.log
 #LOGFILE=SYSLOG

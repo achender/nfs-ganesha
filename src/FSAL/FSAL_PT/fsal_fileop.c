@@ -48,6 +48,7 @@
 #include "fsal.h"
 #include "fsal_internal.h"
 #include "fsal_convert.h"
+#include "pt_methods.h"
 
 // PTFSAL
 #include "pt_ganesha.h"
@@ -92,9 +93,8 @@
  *      - Other error codes can be returned :
  *        ERR_FSAL_IO, ...
  */
-
-fsal_status_t 
-PTFSAL_open_by_name(fsal_handle_t      * dirhandle,        /* IN */
+#if 0 //??? not needed for now
+fsal_status_t PTFSAL_open_by_name(struct gpfs_file_handle * dirhandle,      /* IN */
                     fsal_name_t        * filename,         /* IN */
                     fsal_op_context_t  * p_context,        /* IN */
                     fsal_openflags_t     openflags,        /* IN */
@@ -102,11 +102,11 @@ PTFSAL_open_by_name(fsal_handle_t      * dirhandle,        /* IN */
                     fsal_attrib_list_t * file_attributes   /* [ IN/OUT ] */ )
 {
   fsal_status_t fsal_status;
-  fsal_handle_t filehandle;
+  struct pt_file_handle filehandle;
 
   FSI_TRACE(FSI_DEBUG, "FSI - Enter open by name\n");
   if(!dirhandle || !filename || !p_context || !file_descriptor)
-    Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_open_by_name);
+    return fsalstat(ERR_FSAL_FAULT, 0);
 
   fsal_status = FSAL_lookup(dirhandle, filename, p_context, &filehandle, 
                             file_attributes);
@@ -116,14 +116,15 @@ PTFSAL_open_by_name(fsal_handle_t      * dirhandle,        /* IN */
   return FSAL_open(&filehandle, p_context, openflags, file_descriptor, 
                    file_attributes);
 }
+#endif
 
 /**
  * FSAL_open:
  * Open a regular file for reading/writing its data content.
  *
- * \param filehandle (input):
+ * \param noj_hdl (input):
  *        Handle of the file to be read/modified.
- * \param cred (input):
+ * \param p_context (input):
  *        Authentication context for the operation (user,...).
  * \param openflags (input):
  *        Flags that indicates behavior for file opening and access.
@@ -147,33 +148,33 @@ PTFSAL_open_by_name(fsal_handle_t      * dirhandle,        /* IN */
  *      - ERR_FSAL_NO_ERROR: no error.
  *      - Another error code if an error occured during this call.
  */
-fsal_status_t PTFSAL_open(fsal_handle_t      * p_filehandle,   /* IN */
-                          fsal_op_context_t  * p_context,      /* IN */
-                          fsal_openflags_t     openflags,      /* IN */
-                          fsal_file_t        * file_desc,      /* OUT */
-                          fsal_attrib_list_t * p_file_attributes /* [IN/OUT] */
+fsal_status_t PTFSAL_open(struct fsal_obj_handle *obj_hdl,   /* IN */
+                            const struct req_op_context *p_context, /* IN */
+                            fsal_openflags_t openflags,        /* IN */
+                            int * file_desc,                   /* OUT */
+                            struct attrlist *p_file_attributes  /* IN/OUT */
+
     )
 {
 
   int rc, errsv;
   fsal_status_t status;
 
-  int fd;
   int posix_flags = 0;
-  ptfsal_file_t           * p_file_descriptor = (ptfsal_file_t *)file_desc;
-  ptfsal_op_context_t     * fsi_op_context  = (ptfsal_op_context_t *)p_context;
-  ptfsal_export_context_t * fsi_export_context = 
-    fsi_op_context->export_context;
+  struct pt_fsal_obj_handle *myself;
+  int mntfd;
 
   FSI_TRACE(FSI_DEBUG, "FSI - PTFSAL Open********************************\n");
 
   /* sanity checks.
    * note : file_attributes is optional.
    */
-  if(!p_filehandle || !p_context || !p_file_descriptor) {
-    FSI_TRACE(FSI_DEBUG, "Bad Parameters");
-    Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_open);
-  }
+  if(!obj_hdl || !file_desc)
+    return fsalstat(ERR_FSAL_FAULT, 0);
+
+  myself = container_of(obj_hdl, struct pt_fsal_obj_handle, obj_handle);
+  mntfd = pt_get_root_fd(obj_hdl->export);
+
 
   /* convert fsal open flags to posix open flags */
   rc = fsal2posix_openflags(openflags, &posix_flags);
@@ -181,36 +182,36 @@ fsal_status_t PTFSAL_open(fsal_handle_t      * p_filehandle,   /* IN */
   /* flags conflicts. */
   if(rc) {
     LogWarn(COMPONENT_FSAL, "Invalid/conflicting flags : %#X", openflags);
-    Return(rc, 0, INDEX_FSAL_open);
+    return fsalstat(rc, 0);
   }
 
-  status = fsal_internal_handle2fd(p_context, p_filehandle, &fd, posix_flags);
+  status = fsal_internal_handle2fd(p_context, myself, file_desc,
+                                   posix_flags);
 
-  FSI_TRACE(FSI_DEBUG, "FSI - PTFSAL fd = %d\n",fd);
+  FSI_TRACE(FSI_DEBUG, "FSI - PTFSAL fd = %d\n",mntfd);
 
 
-  if(FSAL_IS_ERROR(status))
-    ReturnStatus(status, INDEX_FSAL_open);
+  if(FSAL_IS_ERROR(status)) {
+      *file_desc = 0;
+      return(status);    
+  }
 
   /* output attributes */
   if(p_file_attributes) {
-    p_file_attributes->asked_attributes = PTFS_SUPPORTED_ATTRIBUTES;
-    status = PTFSAL_getattrs(p_filehandle, p_context, p_file_attributes);
-    if(FSAL_IS_ERROR(status))
-      ReturnStatus(status, INDEX_FSAL_open);
+      p_file_attributes->mask = PT_SUPPORTED_ATTRIBUTES;
+      status = PTFSAL_getattrs(obj_hdl->export, NULL/*p_context???*/, myself->handle,
+                                 p_file_attributes);
+      if(FSAL_IS_ERROR(status)) {
+          *file_desc = 0;
+          close(*file_desc);
+          return(status);
+      }
   }
 
-  p_file_descriptor->fd = fd;
-  p_file_descriptor->export_id = fsi_export_context->pt_export_id;;
-  p_file_descriptor->uid = fsi_op_context->credential.user;
-  p_file_descriptor->gid = fsi_op_context->credential.group;
   errsv = errno;
 
-  /* set the read-only flag of the file descriptor */
-  p_file_descriptor->ro = openflags & FSAL_O_RDONLY;
-
   FSI_TRACE(FSI_DEBUG, "FSI - End PTFSAL open********************\n");
-  Return(ERR_FSAL_NO_ERROR, 0, INDEX_FSAL_open);
+  return fsalstat(ERR_FSAL_NO_ERROR, 0);
 
 }
 
@@ -238,40 +239,35 @@ fsal_status_t PTFSAL_open(fsal_handle_t      * p_filehandle,   /* IN */
  *      - ERR_FSAL_NO_ERROR: no error.
  *      - Another error code if an error occured during this call.
  */
-fsal_status_t PTFSAL_read(fsal_file_t * file_desc,            /* IN */
-                          fsal_op_context_t * p_context,    /* IN */
-                          fsal_seek_t * p_seek_descriptor,    /* [IN] */
-                          fsal_size_t   buffer_size,          /* IN */
+fsal_status_t PTFSAL_read(struct pt_fsal_obj_handle *myself,        /* IN */
+                          const struct req_op_context *opctx,
+                          uint64_t offset,        /* [IN] */
+                          size_t buffer_size,        /* IN */
                           caddr_t       buffer,               /* OUT */
-                          fsal_size_t * p_read_amount,        /* OUT */
-                          fsal_boolean_t * p_end_of_file      /* OUT */
+                          size_t * p_read_amount,        /* OUT */
+                          bool * p_end_of_file      /* OUT */
     )
 {
 
   size_t i_size;
   ssize_t nb_read;
-  int rc = 0, errsv = 0;
-  int pcall = FALSE;
-  unsigned long offset = 0;             // FSI offset
+  int errsv = 0;
   unsigned long location;               // FSI current location
   unsigned long file_size;              // FSI end of file
   int           handle_index;           // FSI handle index
-  ptfsal_file_t * p_file_descriptor = (ptfsal_file_t * )file_desc;
 
   FSI_TRACE(FSI_DEBUG, "Read Begin================================\n");
 
   /* sanity checks. */
-
-  if(!p_file_descriptor || !buffer || !p_read_amount || !p_end_of_file) {
-    Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_read);
-  }
+  if(!buffer || !p_read_amount || !p_end_of_file)
+    return fsalstat(ERR_FSAL_FAULT, 0);
 
   *p_end_of_file = 0;
 
   // get FSI location
-  handle_index = p_file_descriptor->fd;
+  handle_index = myself->u.file.fd;
   if (fsi_check_handle_index (handle_index) < 0) {
-    Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_read);
+    return fsalstat(ERR_FSAL_FAULT, 0);
   }
   location = g_fsi_handles_fsal->m_handle[handle_index].m_file_loc;
   file_size = g_fsi_handles_fsal->m_handle[handle_index].m_stat.st_size;
@@ -279,6 +275,7 @@ fsal_status_t PTFSAL_read(fsal_file_t * file_desc,            /* IN */
 
   i_size = (size_t) buffer_size;
 
+#if 0 //???
   /* positioning */
 
   if(p_seek_descriptor) {
@@ -316,20 +313,21 @@ fsal_status_t PTFSAL_read(fsal_file_t * file_desc,            /* IN */
         break;
     }
   }
+#endif
 
   /* read operation */
-  nb_read = ptfsal_read(p_file_descriptor, buffer, buffer_size, offset, 
+  nb_read = ptfsal_read(myself, opctx, buffer, buffer_size, offset, 
                         handle_index);
   errsv = errno;
   if(nb_read == -1)
-    Return(posix2fsal_error(errsv), errsv, INDEX_FSAL_read);
+   return fsalstat(posix2fsal_error(errsv), errsv);
   else if(nb_read == 0)
     *p_end_of_file = 1;
 
   *p_read_amount = nb_read;
 
   FSI_TRACE(FSI_DEBUG, "Read end=================================");
-  Return(ERR_FSAL_NO_ERROR, 0, INDEX_FSAL_read);
+  return fsalstat(ERR_FSAL_NO_ERROR, 0);
 
 }
 
@@ -354,21 +352,18 @@ fsal_status_t PTFSAL_read(fsal_file_t * file_desc,            /* IN */
  *      - ERR_FSAL_NO_ERROR: no error.
  *      - Another error code if an error occured during this call.
  */
-fsal_status_t PTFSAL_write(fsal_file_t * file_desc,           /* IN */
-                           fsal_op_context_t * p_context,     /* IN */
-                           fsal_seek_t * p_seek_descriptor,   /* IN */
-                           fsal_size_t buffer_size,           /* IN */
-                           caddr_t buffer,                    /* IN */
-                           fsal_size_t * p_write_amount       /* OUT */
-                          )
+fsal_status_t PTFSAL_write(struct pt_fsal_obj_handle *p_file_descriptor,
+                        const struct req_op_context *opctx,
+                        uint64_t offset,         /* IN */
+                        size_t buffer_size,      /* IN */
+                        caddr_t buffer,          /* IN */
+                        size_t *p_write_amount,  /* OUT */
+                        bool *fsal_stable)       /* IN/OUT */
 {
 
-  ssize_t nb_written;
+  size_t nb_written;
   size_t i_size;
-  int rc = 0, errsv = 0;
-  int pcall = FALSE;
-  ptfsal_file_t * p_file_descriptor = (ptfsal_file_t *)file_desc;
-  unsigned long offset = 0;             // FSI offset
+  int errsv = 0;
   unsigned long location;               // FSI current location
   unsigned long file_size;              // FSI end of file
   int           handle_index;           // FSI handle index
@@ -377,29 +372,26 @@ fsal_status_t PTFSAL_write(fsal_file_t * file_desc,           /* IN */
   FSI_TRACE(FSI_DEBUG, "FSI - PTFSAL write-----------------\n");
 
   /* sanity checks. */
-  if(!p_file_descriptor || !buffer || !p_write_amount) {
-    Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_write);
+  if(!buffer || !p_write_amount) {
+    return fsalstat(ERR_FSAL_FAULT, 0);
   }
 
-  if(p_file_descriptor->ro) {
-    Return(ERR_FSAL_PERM, 0, INDEX_FSAL_write);
-  }
   // get FSI location
-  handle_index = p_file_descriptor->fd;
+  handle_index = p_file_descriptor->u.file.fd;
   if (fsi_check_handle_index (handle_index) < 0) {
-    Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_write);
+    return fsalstat(ERR_FSAL_FAULT, 0);
   }
   location = g_fsi_handles_fsal->m_handle[handle_index].m_file_loc;
   file_size = g_fsi_handles_fsal->m_handle[handle_index].m_stat.st_size;
   FSI_TRACE(FSI_DEBUG, "FSI - write to handle %d\n",handle_index);
 
-  /** @todo: manage fsal_size_t to size_t convertion */
+  /** @todo: manage size_t to size_t convertion */
   i_size = (size_t) buffer_size;
 
   *p_write_amount = 0;
 
   /* positioning */
-
+#if 0
   if(p_seek_descriptor) {
 
     switch (p_seek_descriptor->whence)
@@ -444,44 +436,34 @@ fsal_status_t PTFSAL_write(fsal_file_t * file_desc,           /* IN */
                  (long long) p_seek_descriptor->offset, buffer_size);
 
   }
+#endif
 
   /* write operation */
-  nb_written = ptfsal_write(file_desc, buffer, buffer_size, offset, 
+  nb_written = ptfsal_write(p_file_descriptor, opctx, buffer, buffer_size, offset, 
                             handle_index);
 
-  FSI_TRACE(FSI_INFO, "Number of bytes written %d", nb_written);
+  FSI_TRACE(FSI_INFO, "Number of bytes written %ld", nb_written);
   FSI_TRACE(FSI_DEBUG, "The errno %d", errno);
 
   if(nb_written > 0) {
     errno = 0;
   } else {
-    FSI_TRACE(FSI_ERR, "Failed to write data, nb_written %d errno %d", nb_written, errsv);
+    FSI_TRACE(FSI_ERR, "Failed to write data, nb_written %ld errno %d", nb_written, errsv);
     errsv = errno;
-    if (p_seek_descriptor) {
-      LogDebug(COMPONENT_FSAL,
-               "Write operation of size %llu at offset %lld failed. fd=%d, "  
-               "errno=%d.",
-               (unsigned long long) i_size,
-               (long long) p_seek_descriptor->offset,
-               p_file_descriptor->fd,
-               errsv);
-    } else {
-      LogDebug(COMPONENT_FSAL,
+    LogDebug(COMPONENT_FSAL,
                "Write operation of size %llu at offset 0. fd=%d, errno=%d.",
                (unsigned long long) i_size,
-               p_file_descriptor->fd,
+               p_file_descriptor->u.file.fd,
                errsv);
-    }
-
-    Return(posix2fsal_error(errsv), errsv, INDEX_FSAL_write);
+    return fsalstat(posix2fsal_error(errsv), errsv);
   }
 
   /* set output vars */
 
-  *p_write_amount = (fsal_size_t) nb_written;
+  *p_write_amount = (size_t) nb_written;
 
   FSI_TRACE(FSI_DEBUG, "FSI - END PTFSAL write--------------------------\n");
-  Return(ERR_FSAL_NO_ERROR, 0, INDEX_FSAL_write);
+  return fsalstat(ERR_FSAL_NO_ERROR, 0);
 
 }
 
@@ -497,38 +479,32 @@ fsal_status_t PTFSAL_write(fsal_file_t * file_desc,           /* IN */
  *      - Another error code if an error occured during this call.
  */
 
-fsal_status_t PTFSAL_close(fsal_file_t * p_file_descriptor,   /* IN */ 
-                           fsal_op_context_t * p_context  /* IN */ )
+fsal_status_t PTFSAL_close(int p_file_descriptor)   /* IN */ 
 {
-
-  int rc, errsv;
 
   FSI_TRACE(FSI_DEBUG, "FSI - Begin PTFSAL close---------------\n");
 
-  /* sanity checks. */
-  if(!p_file_descriptor)
-    Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_close);
-
   /* call to close */
-  // don't check return code since using IGNORE_STATE
+  // Change to NFS_CLOSE only if it is NFS_OPEN. The calling function will ignore 
+  // other nfs state.
   int state_rc = 
-    CCL_UPDATE_HANDLE_NFS_STATE(p_file_descriptor->fd, NFS_CLOSE, NFS_OPEN);
+    CCL_SAFE_UPDATE_HANDLE_NFS_STATE(p_file_descriptor, NFS_CLOSE, NFS_OPEN);
 
   if (state_rc) {
     FSI_TRACE(FSI_WARNING, "Unexpected state, not updating nfs state");
   }
 
   /* call ptfsal */
-  ptfsal_close(p_file_descriptor->fd);
+  ptfsal_close(p_file_descriptor);
 
   FSI_TRACE(FSI_DEBUG, "FSI - End PTFSAL close-----------------\n");
-  Return(ERR_FSAL_NO_ERROR, 0, INDEX_FSAL_close);
+  return fsalstat(ERR_FSAL_NO_ERROR, 0);
 
 }
 
-unsigned int PTFSAL_GetFileno(fsal_file_t * pfile)
+unsigned int PTFSAL_GetFileno(int pfile)
 {
-  return ((ptfsal_file_t *)pfile)->fd;
+  return pfile;
 }
 
 /**
@@ -548,10 +524,10 @@ unsigned int PTFSAL_GetFileno(fsal_file_t * pfile)
  *      - ERR_FSAL_NO_ERROR: no error.
  *      - Another error code if an error occured during this call.
  */
-fsal_status_t PTFSAL_commit(fsal_file_t * p_file_descriptor,
-                            fsal_op_context_t * p_context,
-                            fsal_off_t    offset,
-                            fsal_size_t   length )
+fsal_status_t PTFSAL_commit(struct pt_fsal_obj_handle *p_file_descriptor,
+                            const struct req_op_context *opctx,
+                            uint64_t    offset,
+                            size_t   length )
 {
   int rc, errsv;
 
@@ -559,15 +535,15 @@ fsal_status_t PTFSAL_commit(fsal_file_t * p_file_descriptor,
 
   /* sanity checks. */
   if(!p_file_descriptor)
-    Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_commit);
+    return fsalstat(ERR_FSAL_FAULT, 0);
 
-  rc = ptfsal_fsync(p_file_descriptor);
+  rc = ptfsal_fsync(p_file_descriptor, opctx);
 
   if(rc) {
     errsv = errno;
-    Return(posix2fsal_error(errsv), errsv, INDEX_FSAL_commit);
+    return fsalstat(posix2fsal_error(errsv), errsv);
   }
   
   FSI_TRACE(FSI_DEBUG, "FSI - End PTFSAL commit-----------------\n");
-  Return(ERR_FSAL_NO_ERROR, 0, INDEX_FSAL_commit);
+  return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }

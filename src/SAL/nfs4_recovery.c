@@ -98,14 +98,24 @@ nfs4_init_grace()
  */
 void nfs4_start_grace(nfs_grace_start_t *gsp)
 {
+        int rc;
+        char tmp_buffer[512] = {0};
         P(grace.g_mutex);
 
-        /* grace should always be greater than or equal to lease time,
-         * some clients are known to have problems with grace greater than 60 seconds
-         * Lease_Lifetime should be set to a smaller value for those setups. 
+#define GPFS_CMD1 "/usr/lpp/mmfs/bin/mmfsadm"
+#define GPFS_CMD2 "graceperiod"
+
+        /*
+         * grace should always be greater than or equal to lease time,
+         * some clients are known to have problems with grace greater
+         * than 60 seconds. Lease_Lifetime should be set to a smaller
+         * value for those setups.
          */
         grace.g_start = time(NULL);
         grace.g_duration = nfs_param.nfsv4_param.lease_lifetime;
+
+        (void) sprintf(tmp_buffer, "%s %s %lld", GPFS_CMD1, GPFS_CMD2,(long long)grace.g_duration);
+        rc = system(tmp_buffer);        /* Will use FSAL_GRACE API in round 2 */
 
         LogEvent(COMPONENT_STATE,
                  "NFS Server Now IN GRACE, duration %d",
@@ -142,7 +152,9 @@ int last_grace = -1;
  */
 int nfs_in_grace(void)
 {
-        int in_grace;
+        int             in_grace;
+        uint64_t        redo_locks = 0;
+        extern void     resub_all_nlm_blocked();
 
 	if (nfs_param.nfsv4_param.graceless)
 	    return 0;
@@ -157,6 +169,7 @@ int nfs_in_grace(void)
                      "NFS Server Now %s",
                      in_grace ? "IN GRACE" : "NOT IN GRACE");
             last_grace = in_grace;
+            atomic_inc_uint64_t(&redo_locks);
           }
         else if(in_grace)
           {
@@ -165,6 +178,11 @@ int nfs_in_grace(void)
           }
 
         V(grace.g_mutex);
+
+        if (redo_locks) {
+                resub_all_nlm_blocked();
+                atomic_dec_uint64_t(&redo_locks);
+        }
 
         return in_grace;
 }

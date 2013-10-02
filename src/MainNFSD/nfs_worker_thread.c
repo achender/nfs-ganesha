@@ -1566,11 +1566,21 @@ static void nfs_rpc_execute(request_data_t    * preq,
                    "NFS DISPATCHER: FAILURE: Error while calling svc_sendreply");
           svcerr_systemerr2(xprt, req);
 
-          if (do_dupreq_cache && nfs_dupreq_delete(req) != DUPREQ_SUCCESS)
+          if (do_dupreq_cache)
             {
-              LogCrit(COMPONENT_DISPATCH,
+              if (nfs_dupreq_delete(req) != DUPREQ_SUCCESS)
+                {
+                   LogCrit(COMPONENT_DISPATCH,
                       "Attempt to delete duplicate request failed on line %d",
                       __LINE__);
+                }
+            }
+            else 
+            {
+               if (rc == NFS_REQ_OK) 
+                 {
+                    pworker_data->funcdesc->free_function(&res_nfs);
+                 }
             }
           DISP_UNLOCK(xprt, &pworker_data->sigmask);
           goto exe_exit;

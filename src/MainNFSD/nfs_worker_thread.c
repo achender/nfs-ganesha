@@ -1603,6 +1603,8 @@ static void nfs_rpc_execute(request_data_t    * preq,
 
   /* XXX we must hold xprt lock across SVC_FREEARGS */
   DISP_UNLOCK(xprt, &pworker_data->sigmask);
+
+exe_exit:
     
   /* Free the reply.
    * This should not be done if the request is dupreq cached because this will
@@ -1616,8 +1618,6 @@ static void nfs_rpc_execute(request_data_t    * preq,
     }
 
   drc_check(pworker_data);
-
-exe_exit:
 
   clean_credentials(&user_credentials);
 

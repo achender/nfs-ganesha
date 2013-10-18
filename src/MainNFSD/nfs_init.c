@@ -1091,14 +1091,16 @@ static void nfs_Init(const nfs_start_info_t *p_start_info)
           "9P resources successfully initialized");
 #endif /* _USE_9P */
 
-  /* Creates the pseudo fs */
-  LogDebug(COMPONENT_INIT, "Now building pseudo fs");
-  if((rc = nfs4_ExportToPseudoFS()) != 0)
-    LogFatal(COMPONENT_INIT,
-             "Error %d while initializing NFSv4 pseudo file system", rc);
+  if (nfs_param.core_param.core_options & CORE_OPTION_NFSV4) {
+      /* Creates the pseudo fs */
+      LogDebug(COMPONENT_INIT, "Now building pseudo fs");
+      if((rc = nfs4_ExportToPseudoFS()) != 0)
+        LogFatal(COMPONENT_INIT,
+                 "Error %d while initializing NFSv4 pseudo file system", rc);
 
-  LogInfo(COMPONENT_INIT,
-          "NFSv4 pseudo file system successfully initialized");
+      LogInfo(COMPONENT_INIT,
+              "NFSv4 pseudo file system successfully initialized");
+   }
 
    /* Save Ganesha thread credentials with Frank's routine for later use */
    fsal_save_ganesha_credentials() ;

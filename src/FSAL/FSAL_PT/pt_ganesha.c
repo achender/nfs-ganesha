@@ -122,7 +122,7 @@ int fsi_cache_name_and_handle(const struct req_op_context *p_context,
 		  g_fsi_name_handle_cache.m_count);
 	pthread_rwlock_unlock(&g_fsi_cache_handle_rw_lock);
 
-	if (strnlen(name, 1) == 0) {
+	if (name[0] == '\0') {
 		FSI_TRACE(FSI_NOTICE,
 			  "The name is empty string for handle : "
 			  "%p->0x%lx %lx %lx %lx", handle, handlePtr[0],
@@ -177,7 +177,7 @@ int fsi_get_name_from_handle(const struct req_op_context *p_context,
 					  "FSI - name = %s cache index %d DIRECT HIT\n",
 					  name, index);
 				// Check whether the name from cache is empty
-				if (strnlen(name, 1) == 0) {
+				if (name[0] == '\0') {
 					FSI_TRACE(FSI_NOTICE,
 						  "The name is empty string from cache by index:"
 						  "%p->0x%lx %lx %lx %lx",
@@ -222,7 +222,7 @@ int fsi_get_name_from_handle(const struct req_op_context *p_context,
 		FSI_TRACE(FSI_DEBUG, "FSI - name = %s opened file cache HIT\n",
 			  name);
 		// Check whether the name from cache is empty
-		if (strnlen(name, 1) == 0) {
+		if (name[0] == '\0') {
 			FSI_TRACE(FSI_NOTICE,
 				  "The name is empty string from opened file cache:"
 				  "%p->0x%lx %lx %lx %lx.  Continue searching other caches",
@@ -267,7 +267,7 @@ int fsi_get_name_from_handle(const struct req_op_context *p_context,
 			FSI_TRACE(FSI_DEBUG, "FSI - name = %s \n", name);
 
 			// Check whether the name from cache is empty 
-			if (strnlen(name, 1) == 0) {
+			if (name[0] ==  '\0') {
 				FSI_TRACE(FSI_NOTICE,
 					  "The name is empty string from cache by loop: "
 					  "%p->0x%lx %lx %lx %lx", handlePtr,
@@ -305,7 +305,7 @@ int fsi_get_name_from_handle(const struct req_op_context *p_context,
 		  handlePtr[0], handlePtr[1], handlePtr[2], handlePtr[3], name);
 
 	if (rc == 0) {
-		if (strnlen(name, 1) == 0) {
+		if (name[0] == '\0') {
 			FSI_TRACE(FSI_NOTICE,
 				  "The name is empty string from PT: "
 				  "%p->0x%lx %lx %lx %lx", handlePtr,
@@ -352,7 +352,7 @@ int fsi_update_cache_name(char *oldname, char *newname)
 	struct fsi_handle_cache_entry_t handle_entry;
 
 	FSI_TRACE(FSI_DEBUG, "oldname[%s]->newname[%s]", oldname, newname);
-	if (strnlen(newname, 1) == 0) {
+	if (newname[0] == '\0') {
 		FSI_TRACE(FSI_ERR, "The file name is empty string.");
 		return -1;
 	}
@@ -804,7 +804,7 @@ int ptfsal_open_by_handle(const struct req_op_context *p_context,
 
 	// The file name should not be empty "". In case it is empty, we
 	// return error.
-	if (strnlen(fsi_filename, 1) == 0) {
+	if (fsi_filename[0] == '\0') {
 		FSI_TRACE(FSI_ERR,
 			  "The file name is empty string for handle: "
 			  "0x%lx %lx %lx %lx", handlePtr[0], handlePtr[1],
@@ -926,7 +926,7 @@ int ptfsal_open(struct pt_fsal_obj_handle *p_parent_directory_handle,
 
 	// The file name should not be empty "". In case it is empty, we
 	// return error.
-	if (strnlen(fsi_name, 1) == 0) {
+	if (fsi_name[0] == '\0') {
 		FSI_TRACE(FSI_ERR, "The file name is empty string.");
 		return -1;
 	}
@@ -1130,7 +1130,7 @@ int ptfsal_mkdir(struct pt_fsal_obj_handle *p_parent_directory_handle,
 
 	// The dir name should not be empty "". In case it is empty, we
 	// return error.
-	if (strnlen(fsi_name, 1) == 0) {
+	if (fsi_name[0] == '\0') {
 		FSI_TRACE(FSI_ERR, "The directory name is empty string.");
 		return -1;
 	}

@@ -79,11 +79,11 @@
  *        - ERR_FSAL_NO_ERROR     (no error)
  *        - Another error code if an error occured.
  */
-fsal_status_t PTFSAL_readlink(struct fsal_obj_handle *dir_hdl,	/* IN */
-			      const struct req_op_context *p_context,	/* IN */
+fsal_status_t PTFSAL_readlink(struct fsal_obj_handle * dir_hdl,	/* IN */
+			      const struct req_op_context * p_context,	/* IN */
 			      char *p_link_content,	/* OUT */
 			      size_t * link_len,	/* IN/OUT */
-			      struct attrlist *p_link_attributes)
+			      struct attrlist * p_link_attributes)
 {				/* IN/OUT */
 
 	int errsv;

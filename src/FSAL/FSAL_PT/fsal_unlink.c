@@ -77,10 +77,10 @@
  *        - ERR_FSAL_NO_ERROR     (no error)
  *        - Another error code if an error occured.
  */
-fsal_status_t PTFSAL_unlink(struct fsal_obj_handle *dir_hdl,	/* IN */
+fsal_status_t PTFSAL_unlink(struct fsal_obj_handle * dir_hdl,	/* IN */
 			    const char *p_object_name,	/* IN */
-			    const struct req_op_context *p_context,	/* IN */
-			    struct attrlist *p_parent_attributes)
+			    const struct req_op_context * p_context,	/* IN */
+			    struct attrlist * p_parent_attributes)
 {				/* IN/OUT */
 
 	fsal_status_t status;

@@ -83,11 +83,11 @@
  *      - ERR_FSAL_NO_ERROR: no error.
  *      - Another error code if an error occured during this call.
  */
-fsal_status_t PTFSAL_open(struct fsal_obj_handle *obj_hdl,	/* IN */
-			  const struct req_op_context *p_context,	/* IN */
+fsal_status_t PTFSAL_open(struct fsal_obj_handle * obj_hdl,	/* IN */
+			  const struct req_op_context * p_context,	/* IN */
 			  fsal_openflags_t openflags,	/* IN */
 			  int *file_desc,	/* OUT */
-			  struct attrlist *p_file_attributes	/* IN/OUT */
+			  struct attrlist * p_file_attributes	/* IN/OUT */
     )
 {
 

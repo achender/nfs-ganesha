@@ -44,7 +44,7 @@
 #include "FSAL/fsal_commonlib.h"
 #include "FSAL/fsal_config.h"
 #include "pt_methods.h"
-#include "fsal_types.h"
+#include "pt_nfs.h"
 
 /* helpers to/from other PT objects
  */

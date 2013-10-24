@@ -1,14 +1,15 @@
-// ----------------------------------------------------------------------------
-// Copyright IBM Corp. 2012, 2012
-// All Rights Reserved
-// ----------------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-// Filename:    fsal_types.h
-// Description: FSAL common types declarations
-// Author:      FSI IPC dev team
-// ----------------------------------------------------------------------------
-
 /*
+ *  ----------------------------------------------------------------------------
+ *  Copyright IBM Corp. 2012, 2012
+ *  All Rights Reserved
+ *  ----------------------------------------------------------------------------
+ *  ----------------------------------------------------------------------------
+ * Filename:    fsal_types.h
+ *  Description: FSAL common types declarations
+ *  Author:      FSI IPC dev team
+ *  ----------------------------------------------------------------------------
+ *
+ *
  *
  *
  * Copyright CEA/DAM/DIF  (2008)
@@ -28,24 +29,21 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * ---------------------------------------
  */
 
 /**
- * \file    fsal_types.h
- * \author  $Author: leibovic $
- * \date    $Date: 2006/02/08 12:45:27 $
- * \version $Revision: 1.19 $
+ * \file    pt_nfs.h
  * \brief   File System Abstraction Layer types and constants.
  *
  *
  *
  */
 
-#ifndef _FSAL_TYPES_SPECIFIC_H
-#define _FSAL_TYPES_SPECIFIC_H
+#ifndef _PT_NFS_H
+#define _PT_NFS_H
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -57,7 +55,6 @@
 
 #include "config_parsing.h"
 #include "err_fsal.h"
-#include "fsal_types.h"
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -117,8 +114,6 @@
  *  does memory management.
  */
 
-/* some versions of GPFS don't have this in their headers */
-#ifndef _GPFS_DECLARES_HANDLE
 struct file_handle {
 	u_int32_t handle_size;
 	u_int32_t handle_type;
@@ -127,7 +122,6 @@ struct file_handle {
 	/* file identifier */
 	unsigned char f_handle[OPENHANDLE_HANDLE_LEN];
 };
-#endif
 
 /** end of open by handle structures */
 
@@ -142,7 +136,7 @@ typedef struct {
 
 /** Authentification context.    */
 
-static inline size_t pt_sizeof_handle(ptfsal_handle_t * fh)
+static inline size_t pt_sizeof_handle(ptfsal_handle_t *fh)
 {
 	return sizeof(ptfsal_handle_t);
 }
@@ -162,8 +156,8 @@ typedef struct {
 	uint64_t pt_export_id;	/* This is PT side FS export ID */
 } ptfsal_export_context_t;
 
-/*                              
- * PT internal export     
+/*
+ * PT internal export
  */
 
 struct pt_fsal_export {
@@ -177,8 +171,8 @@ struct pt_fsal_export {
 	uint64_t pt_export_id;	/* This is PT side FS export ID */
 };
 
-#define FSAL_EXPORT_CONTEXT_SPECIFIC( _pexport_context ) \
-  (uint64_t)((_pexport_context)->dev_id)
+#define FSAL_EXPORT_CONTEXT_SPECIFIC(_pexport_context) \
+	(uint64_t)((_pexport_context)->dev_id)
 
 typedef struct {
 	/* Must be the first entry in this structure */
@@ -188,8 +182,8 @@ typedef struct {
 	unsigned int count;
 } ptfsal_op_context_t;
 
-#define FSAL_OP_CONTEXT_TO_UID( pcontext ) ( pcontext->credential.user )
-#define FSAL_OP_CONTEXT_TO_GID( pcontext ) ( pcontext->credential.group )
+#define FSAL_OP_CONTEXT_TO_UID(pcontext) (pcontext->credential.user)
+#define FSAL_OP_CONTEXT_TO_GID(pcontext) (pcontext->credential.group)
 
 typedef struct {
 	int use_kernel_module_interface;
@@ -211,7 +205,7 @@ typedef union {
 
 typedef struct {
 	int fd;
-	const struct req_op_context *context;	/* credential for accessing the directory */
+	const struct req_op_context *context; /*credential for accessing dir*/
 	char path[1024];
 	unsigned int dir_offset;
 	ptfsal_handle_t *handle;
@@ -220,19 +214,19 @@ typedef struct {
 typedef struct {
 	int fd;
 	int ro;			/* read only file ? */
-	uint64_t export_id;	// export id
-	uint64_t uid;		// user id of the connecting user
-	uint64_t gid;		// group id of the connecting user 
+	uint64_t export_id;	/* export id */
+	uint64_t uid;		/* user id of the connecting user */
+	uint64_t gid;		/* group id of the connecting user */
 } ptfsal_file_t;
 
-/* Define the buffer size for GPFS NFS4 ACL. */
-#define GPFS_ACL_BUF_SIZE 0x1000
+/* Define the buffer size for PT NFS4 ACL. */
+#define PT_ACL_BUF_SIZE 0x1000
 
 /* A set of buffers to retrieve multiple attributes at the same time. */
 typedef struct fsal_xstat__ {
 	int attr_valid;
 	struct stat buffstat;
-	char buffacl[GPFS_ACL_BUF_SIZE];
+	char buffacl[PT_ACL_BUF_SIZE];
 } ptfsal_xstat_t;
 
 #endif				/* _FSAL_TYPES__SPECIFIC_H */

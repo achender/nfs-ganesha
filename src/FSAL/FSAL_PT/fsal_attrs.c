@@ -27,7 +27,7 @@
 #include "fsal.h"
 #include "fsal_internal.h"
 #include "fsal_convert.h"
-#include "fsal_types.h"
+#include "pt_nfs.h"
 #include <sys/types.h>
 #include <unistd.h>
 #include <utime.h>

@@ -8,7 +8,7 @@
 // Author:      FSI IPC Team
 // ----------------------------------------------------------------------------
 #include "pt_ganesha.h"
-#include "fsal_types.h"
+#include "pt_nfs.h"
 //#include "pt_util_cache.h"
 int g_ptfsal_context_flag = 1;	// global context caching
 						 // flag. Allows turning off

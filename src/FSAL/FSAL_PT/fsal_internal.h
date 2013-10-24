@@ -40,8 +40,7 @@
 #include  "fsal.h"
 #include <sys/stat.h>
 #include "fsal_up.h"
-#include "FSAL/FSAL_PT/fsal_types.h"
-#include "fsal_types.h"
+#include "pt_nfs.h"
 #include "fcntl.h"
 #include "pt_methods.h"
 

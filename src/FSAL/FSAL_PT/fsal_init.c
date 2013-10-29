@@ -74,8 +74,9 @@ struct acl_handles_struct_t  * g_fsi_acl_handles_fsal;
 
 int PTFSAL_log(int level, const char * message)
 {
-  DisplayLogComponentLevel(COMPONENT_FSAL_PT, "FSAL_PT", level,
-                           "%s", (char *)message);
+  DisplayLogComponentLevel(COMPONENT_FSAL_PT, __FILE__, __LINE__,
+                           (char *)__func__, level,
+                           "FSAL_PT: %s", (char *)message);
   return 0;
 }
 

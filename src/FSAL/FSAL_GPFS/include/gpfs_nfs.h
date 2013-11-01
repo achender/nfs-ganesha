@@ -549,6 +549,9 @@ struct callback_arg
 #define XATTR_CTIME     (1 << 6) //  40
 #define XATTR_ATIME_SET (1 << 7) //  80
 #define XATTR_MTIME_SET (1 << 8) // 100
+#define XATTR_ATIME_NOW (1 << 9) // 200
+#define XATTR_MTIME_NOW (1 << 10)// 400
+
 
 struct xstat_arg
 {

@@ -255,16 +255,54 @@ void *GPFSFSAL_UP_Thread(void *Arg)
             break;
 
           case INODE_UPDATE: /* Update Event */
+          {
+            fsal_attrib_list_t  attr;  
+            pevent->event_data.type.update.upu_flags = 0;
             LogMidDebug(COMPONENT_FSAL_UP,
                         "inode update: flags:%x update ino %ld n_link:%d",
                         flags, callback.buf->st_ino, (int)callback.buf->st_nlink);
-            pevent->event_data.type.update.upu_flags = 0;
-            pevent->event_data.type.update.upu_stat_buf = buf;
-            if (flags & UP_NLINK)
-              pevent->event_data.type.update.upu_flags |= FSAL_UP_NLINK;
-            pevent->event_type = FSAL_UP_EVENT_UPDATE;
-            break;
+            if (flags & (UP_SIZE | UP_NLINK | UP_MODE | UP_OWN |
+                         UP_TIMES | UP_ATIME | UP_SIZE_BIG)) {
+              attr.asked_attributes = 0;
+              if (flags & UP_SIZE) {
+                attr.asked_attributes |= FSAL_ATTR_CHGTIME | FSAL_ATTR_CHANGE |
+                  FSAL_ATTR_SIZE | FSAL_ATTR_SPACEUSED;
+              }
+              if (flags & UP_SIZE_BIG) {
+                attr.asked_attributes |= FSAL_ATTR_CHGTIME | FSAL_ATTR_CHANGE |
+                  FSAL_ATTR_SIZE | FSAL_ATTR_SPACEUSED;
+                pevent->event_data.type.update.upu_flags |= 
+                  fsal_up_update_filesize_inc | fsal_up_update_spaceused_inc;
+              }
+              if (flags & UP_MODE) {
+                attr.asked_attributes |= FSAL_ATTR_CHGTIME | FSAL_ATTR_CHANGE |
+                FSAL_ATTR_MODE;
+              }
+              if (flags & UP_OWN) {
+                attr.asked_attributes |= FSAL_ATTR_CHGTIME | FSAL_ATTR_CHANGE |
+                  FSAL_ATTR_OWNER;
+              }
+              if (flags & UP_TIMES) {
+                attr.asked_attributes |= FSAL_ATTR_CHGTIME | FSAL_ATTR_CHANGE |
+                  FSAL_ATTR_ATIME | FSAL_ATTR_CTIME | FSAL_ATTR_MTIME;
+              }
+              if (flags & UP_ATIME) {
+                attr.asked_attributes |= FSAL_ATTR_CHGTIME | FSAL_ATTR_CHANGE |
+                  FSAL_ATTR_ATIME;
+              }
+              attr.supported_attributes = attr.asked_attributes;
+              posix2fsal_attributes(&buf, &attr);
+              pevent->event_data.type.update.upu_attr = attr;
 
+              if ((flags & UP_NLINK) && (attr.numlinks == 0))
+                pevent->event_data.type.update.upu_flags |= fsal_up_nlink;
+
+              pevent->event_type = FSAL_UP_EVENT_UPDATE;
+            } else {
+              pevent->event_type = FSAL_UP_EVENT_INVALIDATE;
+            }
+            break;
+          }
           case THREAD_STOP: /* GPFS export no longer available */
             LogWarn(COMPONENT_FSAL,
                     "GPFS file system %s is no longer available",

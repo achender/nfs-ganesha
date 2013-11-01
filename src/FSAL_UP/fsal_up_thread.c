@@ -73,8 +73,7 @@ fsal_status_t  schedule_fsal_up_event_process(fsal_up_event_t *arg)
    /* Invalidate first without scheduling */
     arg->event_process_func(&arg->event_data);
 
-    if ((arg->event_data.type.update.upu_flags & FSAL_UP_NLINK) &&
-        (arg->event_data.type.update.upu_stat_buf.st_nlink == 0) )
+    if (arg->event_data.type.update.upu_flags & fsal_up_nlink)
     {
       /* upu_flags must be set or st_nlink is unreliable. */
       /* Step2 where we perform close; which could be expensive operation

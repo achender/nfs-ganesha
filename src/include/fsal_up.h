@@ -44,16 +44,59 @@
 #define FSAL_UP_EVENT_UPDATE     12
 #define FSAL_UP_EVENT_INVALIDATE 13
 
-/* Defines for the flags in callback_arg, keep up to date with CXIUP_xxx */
-#define FSAL_UP_NLINK        0x00000001   /* update nlink */
-#define FSAL_UP_MODE         0x00000002   /* update mode and ctime */
-#define FSAL_UP_OWN          0x00000004   /* update mode,uid,gid and ctime */
-#define FSAL_UP_SIZE         0x00000008   /* update fsize */
-#define FSAL_UP_SIZE_BIG     0x00000010   /* update fsize if bigger */
-#define FSAL_UP_TIMES        0x00000020   /* update all times */
-#define FSAL_UP_ATIME        0x00000040   /* update atime only */
-#define FSAL_UP_PERM         0x00000080   /* update fields needed for permission checking*/
-#define FSAL_UP_RENAME       0x00000100   /* this is a rename op */
+
+/**                                                
+ * Empty flags. 
+ */                                     
+static const uint32_t fsal_up_update_null = 0x0000;
+                                                
+/**                                             
+ * Update the filesize only if the new size is greater than that
+ * currently set.                                   
+ */                                                  
+static const uint32_t fsal_up_update_filesize_inc = 0x0001;
+
+/**
+ * Update the atime only if the new time is later than the currently
+ * set time.
+ */
+static const uint32_t fsal_up_update_atime_inc = 0x0002;
+
+/**
+ * Update the creation time only if the new time is later than the
+ * currently set time.
+ */
+static const uint32_t fsal_up_update_creation_inc = 0x0004;
+
+/**
+ * Update the ctime only if the new time is later than that currently
+ * set.
+ */
+static const uint32_t fsal_up_update_ctime_inc = 0x0008;
+
+/**
+ * Update the mtime only if the new time is later than that currently
+ * set.
+ */
+static const uint32_t fsal_up_update_mtime_inc = 0x0010;
+
+/**
+ * Update the chgtime only if the new time is later than that
+ * currently set.
+ */
+static const uint32_t fsal_up_update_chgtime_inc = 0x0020;
+/**
+ * Update the spaceused only if the new size is greater than that
+ * currently set.
+ */
+static const uint32_t fsal_up_update_spaceused_inc = 0x0040;
+
+/**
+ * The file link count is zero.
+ */
+static const uint32_t fsal_up_nlink = 0x0080;
+
+static const uint32_t fsal_up_invalidate = 0x0100;
 
 
 typedef struct fsal_up_event_bus_parameter_t_
@@ -122,7 +165,7 @@ typedef struct fsal_up_event_data_invalidate_
 
 typedef struct fsal_up_event_data_update_
 {
-  struct stat upu_stat_buf;
+  fsal_attrib_list_t upu_attr;
   int upu_flags;
 } fsal_up_event_data_update_t;
 

@@ -315,6 +315,16 @@ void *stats_thread(void *UnusedArg)
       return NULL;
     }
 
+  if (chmod(nfs_param.core_param.stats_file_path, 
+            S_IRUSR |  S_IWUSR |  S_IRGRP | S_IWGRP | S_IROTH) != 0)
+     {
+       LogCrit(COMPONENT_MAIN,
+               "NFS STATS : Could not chmod stats file %s. " \
+               "Errno: %s. no stats will be made...",
+               nfs_param.core_param.stats_file_path, strerror(errno));
+       return NULL;
+     }
+
   if(stat(nfs_param.core_param.stats_file_path, &statref) != 0)
     {
       LogCrit(COMPONENT_MAIN,

@@ -397,7 +397,7 @@ int nlm_process_parameters(struct svc_req        * preq,
                 }
               memcpy((*ppblock_data)->sbd_credential.alt_groups,
                      pcontext->credential.alt_groups,
-                     pcontext->credential.nbgroups);
+                     (sizeof(gid_t) * pcontext->credential.nbgroups));
             }
 #endif
         }

@@ -174,6 +174,13 @@ void init_dbus_broadcast()
 {
 	gsh_mutex_init(&dbus_bcast_lock, NULL);
 	glist_init(&dbus_broadcast_list);
+
+	if (nfs_param.dbus_param.heartbeat) {
+		add_dbus_broadcast(&dbus_heartbeat_cb,
+		NULL,
+		nfs_param.dbus_param.heartbeat_freq*1000,
+		BCAST_FOREVER);
+	}
 }
 
 void gsh_dbus_pkginit(void)

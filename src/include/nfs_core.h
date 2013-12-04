@@ -238,6 +238,9 @@ extern ushort g_nodeid;
 request_data_t *nfs_rpc_get_nfsreq(uint32_t flags);
 void nfs_rpc_enqueue_req(request_data_t *req);
 
+uint32_t get_enqueue_count();
+uint32_t get_dequeue_count();
+
 /*
  * Thread entry functions
  */
@@ -279,6 +282,8 @@ extern struct config_block nfs_ip_name;
 extern struct config_block krb5_param;
 #endif
 extern struct config_block version4_param;
+extern struct config_block debus_param;
+
 
 /* Admin thread control */
 

@@ -289,6 +289,19 @@ int nfs_set_param_from_conf(config_file_t parse_tree,
 		return -1;
 	}
 
+	/* DEBUS specific configuration */
+	(void) load_config_from_parse(parse_tree,
+				      &debus_param,
+				      &nfs_param.dbus_param,
+				      true,
+				     &err_type);
+
+	if (!config_error_is_harmless(&err_type)) {
+		LogCrit(COMPONENT_INIT,
+			"Error while parsing debus specific configuration");
+		return -1;
+	}
+
 #ifdef _USE_9P
 	(void) load_config_from_parse(parse_tree,
 				      &_9p_param_blk,

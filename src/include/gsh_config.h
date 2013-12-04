@@ -47,6 +47,7 @@
 #include <stdbool.h>
 #include "nfs4.h"
 #include "fsal_types.h"
+#include "ganesha_dbus.h"
 
 /**
  * @brief An enumeration of protocols in the NFS family
@@ -424,6 +425,7 @@ typedef struct nfs_param {
 	/** kerberos configuration.  Settable in the NFS_KRB5 stanza. */
 	nfs_krb5_parameter_t krb5_param;
 #endif				/* _HAVE_GSSAPI */
+	struct dbus_param dbus_param;
 } nfs_parameter_t;
 
 extern nfs_parameter_t nfs_param;

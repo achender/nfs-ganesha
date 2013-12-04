@@ -159,6 +159,18 @@ struct gsh_dbus_interface {
 
 struct gsh_dbus_interface log_interface;
 
+/** @defgroup config_dbus Structure and defaults for DBUS */
+/** @brief Block label for DBUS */
+#define CONF_LABEL_DBUS "DBUS"
+/**
+  * @brief Default value for heartbeat frequency
+  */
+#define HEARTBEAT_FREQ_DEFAULT 1000
+
+struct dbus_param {
+	bool heartbeat;
+	uint32_t heartbeat_freq; /* milliseconds */
+};
 
 #define BCAST_FOREVER       -1
 
@@ -175,6 +187,12 @@ struct dbus_bcast_item {
 	dbus_bcast_callback bcast_callback;
 	struct glist_head dbus_bcast_q;
 };
+
+/* heartbeat function call back */
+int dbus_heartbeat_cb(void *arg);
+
+/* read dbus config */
+int nfs_read_dbus_conf(config_file_t in_config, struct dbus_param *pparam);
 
 void gsh_dbus_pkginit(void);
 void gsh_dbus_pkgshutdown(void);

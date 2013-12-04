@@ -53,6 +53,8 @@
 #include "nfs_proto_functions.h"
 #include "nfs_dupreq.h"
 #include "config_parsing.h"
+#include "ganesha_dbus.h"
+
 
 /**
  * @brief Core configuration parameters
@@ -239,3 +241,28 @@ struct config_block version4_param = {
 	.blk_desc.u.blk.params = version4_params,
 	.blk_desc.u.blk.commit = noop_conf_commit
 };
+
+
+/**
+ *  * @brief DBUS specific parameters
+ *   */
+
+static struct config_item debus_params[] = {
+	CONF_ITEM_BOOL("heartbeat", false,
+		dbus_param, heartbeat),
+		CONF_ITEM_UI32("heartbeat_freq", 0, 5000,
+			       LEASE_LIFETIME_DEFAULT,
+		dbus_param, heartbeat_freq),
+		CONFIG_EOL
+};
+
+struct config_block debus_param = {
+	.dbus_interface_name = "org.ganesha.nfsd.config.debus",
+	.blk_desc.name = "DBUS",
+	.blk_desc.type = CONFIG_BLOCK,
+	.blk_desc.u.blk.init = noop_conf_init,
+	.blk_desc.u.blk.params = debus_params,
+	.blk_desc.u.blk.commit = noop_conf_commit
+};
+
+

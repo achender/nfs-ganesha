@@ -53,6 +53,8 @@
 #include "nfs_proto_functions.h"
 #include "nfs_dupreq.h"
 #include "config_parsing.h"
+#include "ganesha_dbus.h"
+
 
 /**
  * @brief Core configuration parameters
@@ -155,6 +157,8 @@ static struct config_item core_params[] = {
 			nfs_core_param, manage_gids_expiration),
 	CONF_ITEM_PATH("Plugins_Dir", 1, MAXPATHLEN, FSAL_MODULE_LOC,
 		       nfs_core_param, ganesha_modules_loc),
+	CONF_ITEM_UI32("heartbeat_freq", 0, 5000, 1000,
+		       nfs_core_param, heartbeat_freq),
 	CONFIG_EOL
 };
 

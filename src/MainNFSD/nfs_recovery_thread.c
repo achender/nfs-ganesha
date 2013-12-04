@@ -412,6 +412,9 @@ time_t t_time, r_time, t_done;
                  * num_elements of them.
                  */
                 if ((namelist[ientry]->d_name[0] != 't')) {
+                        LogEvent(COMPONENT_THREAD, "Invalid d_name \"%s\" does not start with 't'\n",
+                                 namelist[ientry]->d_name[0]);
+                        
                         break;
                 }
                 t_time = parse_time(namelist[ientry]->d_name);
@@ -421,8 +424,13 @@ time_t t_time, r_time, t_done;
                 }
                 if(strmaxcpy(workpath,
                              namelist[ientry]->d_name,
-                             sizeof(workpath)) == -1)
+                             sizeof(workpath)) == -1) {
+                        /* Shouldn't happen */
+                        LogEvent(COMPONENT_THREAD, "code should not be reached: %d should be larger than %d (ientry:%d)\n", 
+                                 sizeof(workpath), strlen(namelist[ientry]->d_name), ientry);
+
                         break;
+                }
                 cp = workpath;
                 i = 2; /* id is the third entry */
                 while(i--) {
@@ -454,8 +462,13 @@ time_t t_time, r_time, t_done;
                 while(*cp2 != DELIMIT)
                         cp2++;
                 *cp2 = '\0';
-                if((cp2 - cp) >= sizeof(workaddr))
+                if((cp2 - cp) >= sizeof(workaddr)) {
+                        /* Shouldn't happen */
+                        LogEvent(COMPONENT_THREAD, "code should not be reached: %d should be the same as %d (cp:%p cp2:%p workaddr:%p \"%s\").\n",
+                        (cp2 - cp), sizeof(workaddr), cp, cp2, workaddr, workaddr);
+
                         break;
+                }
                 strcpy(workaddr, cp); /* can't overflow */
                 /* Don't match it again */
                 ientry--;
@@ -477,8 +490,12 @@ time_t t_time, r_time, t_done;
                                 ientry_rstart = ientry_r;
                         if(strmaxcpy(workpath,
                                      namelist[ientry_r]->d_name,
-                                     sizeof(workpath)) == -1)
+                                     sizeof(workpath)) == -1) {
+                                /* Shouldn't happen */
+                                LogEvent(COMPONENT_THREAD, "code should not be reached: %d should be larger than %d (ientry_r:%d).\n", 
+                                         sizeof(workpath), strlen(namelist[ientry_r]->d_name), ientry_r);
                                 break;
+                        }
                         cp = workpath;
                         i = 3; /* address is entry  four and five */
                         while(i--) {
@@ -518,8 +535,12 @@ time_t t_time, r_time, t_done;
                 working->event = TAKEIP;
                 if(strmaxcpy(working->ipaddr,
                              workaddr,
-                             sizeof(working->ipaddr)) == -1)
+                             sizeof(working->ipaddr)) == -1) {
+                        /* Shouldn't happen: both lengths should be the same */
+                        LogEvent(COMPONENT_THREAD, "code should not be reached: %d should be less than %d.\n",
+                                 strlen(workaddr), sizeof(working->ipaddr));
                         break;
+                }
                 ifound++;
                 LogDebug(COMPONENT_THREAD, "found %d address %s at release entry %d from node %d", ifound, working->ipaddr, ientry_r, working->nodeid );
                 if ( ifound < iend )

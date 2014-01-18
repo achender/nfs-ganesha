@@ -78,47 +78,17 @@
 #include <errno.h>
 
 #define fsal_handle_t ptfsal_handle_t
-#define fsal_op_context_t ptfsal_op_context_t
-#define fsal_file_t ptfsal_file_t
 #define fsal_dir_t ptfsal_dir_t
-#define fsal_export_context_t ptfsal_export_context_t
-#define fsal_lockdesc_t ptfsal_lockdesc_t
 #define fsal_cookie_t ptfsal_cookie_t
-#define fs_specific_initinfo_t ptfs_specific_initinfo_t
-#define fsal_cred_t ptfsal_cred_t
-
-/*
- * labels in the config file
- */
-
-#define CONF_LABEL_FS_SPECIFIC   "PTFS"
 
 /* -------------------------------------------
  *      POSIX FS dependant definitions
  * ------------------------------------------- */
 
-#define PT_MAX_FS_EXPORT_ID 40
-
-/** the following come from using the character driver */
-
-#define AT_FDCWD   -100
-
 #define OPENHANDLE_HANDLE_LEN 40
 #define OPENHANDLE_KEY_LEN 28
 #define OPENHANDLE_VERSION 1
-#define OPENHANDLE_DRIVER_MAGIC     'O'
-#define OPENHANDLE_OFFSET_OF_FILEID (2 * sizeof(int))
 
-/**
- *  The following structures are also defined in the kernel module,
- *  and if any change happens it needs to happen both places.  They
- *  are the same except for the change of file_handle.f_handle to a
- *  static 20 character array to work better with the way that ganesha
- *  does memory management.
- */
-
-/* some versions of GPFS don't have this in their headers */
-#ifndef _GPFS_DECLARES_HANDLE
 struct file_handle {
 	u_int32_t handle_size;
 	u_int32_t handle_type;
@@ -127,7 +97,6 @@ struct file_handle {
 	/* file identifier */
 	unsigned char f_handle[OPENHANDLE_HANDLE_LEN];
 };
-#endif
 
 /** end of open by handle structures */
 
@@ -147,21 +116,6 @@ static inline size_t pt_sizeof_handle(ptfsal_handle_t * fh)
 	return sizeof(ptfsal_handle_t);
 }
 
-typedef struct {
-	/* Must be the first entry in this structure */
-	struct fsal_staticfsinfo_t *fe_static_fs_info;
-	exportlist_t *fe_export;
-
-	/* Warning: This string is not currently filled in or used. */
-	char mount_point[1024];
-
-	int mount_root_fd;
-	ptfsal_handle_t mount_root_handle;
-	unsigned int fsid[2];
-	int ganesha_export_id;	/* This is Export_Id */
-	uint64_t pt_export_id;	/* This is PT side FS export ID */
-} ptfsal_export_context_t;
-
 /*                              
  * PT internal export     
  */
@@ -176,26 +130,6 @@ struct pt_fsal_export {
 	ptfsal_handle_t *root_handle;
 	uint64_t pt_export_id;	/* This is PT side FS export ID */
 };
-
-#define FSAL_EXPORT_CONTEXT_SPECIFIC( _pexport_context ) \
-  (uint64_t)((_pexport_context)->dev_id)
-
-typedef struct {
-	/* Must be the first entry in this structure */
-	ptfsal_export_context_t *export_context;
-	struct user_cred credential;
-	int64_t latency;
-	unsigned int count;
-} ptfsal_op_context_t;
-
-#define FSAL_OP_CONTEXT_TO_UID( pcontext ) ( pcontext->credential.user )
-#define FSAL_OP_CONTEXT_TO_GID( pcontext ) ( pcontext->credential.group )
-
-typedef struct {
-	int use_kernel_module_interface;
-	char open_by_handle_dev_file[MAXPATHLEN];
-	int internal_handle_timeout;
-} ptfs_specific_initinfo_t;
 
 /**< directory cookie */
 typedef union {
@@ -217,22 +151,10 @@ typedef struct {
 	ptfsal_handle_t *handle;
 } ptfsal_dir_t;
 
-typedef struct {
-	int fd;
-	int ro;			/* read only file ? */
-	uint64_t export_id;	// export id
-	uint64_t uid;		// user id of the connecting user
-	uint64_t gid;		// group id of the connecting user 
-} ptfsal_file_t;
-
-/* Define the buffer size for GPFS NFS4 ACL. */
-#define GPFS_ACL_BUF_SIZE 0x1000
-
 /* A set of buffers to retrieve multiple attributes at the same time. */
 typedef struct fsal_xstat__ {
 	int attr_valid;
 	struct stat buffstat;
-	char buffacl[GPFS_ACL_BUF_SIZE];
 } ptfsal_xstat_t;
 
 #endif				/* _FSAL_TYPES__SPECIFIC_H */

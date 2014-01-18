@@ -959,25 +959,6 @@ int ptfsal_open(struct pt_fsal_obj_handle *p_parent_directory_handle,
 }
 
 // -----------------------------------------------------------------------------
-int ptfsal_close_mount_root(fsal_export_context_t * p_export_context)
-{
-	ptfsal_export_context_t *fsi_export_context = p_export_context;
-
-	// Change to NFS_CLOSE only if it is NFS_OPEN. The calling function will ignore
-	// other nfs state.
-	int state_rc =
-	    CCL_SAFE_UPDATE_HANDLE_NFS_STATE(fsi_export_context->mount_root_fd,
-					     NFS_CLOSE,
-					     NFS_OPEN);
-	if (state_rc) {
-		FSI_TRACE(FSI_WARNING,
-			  "Unexpected state, not updating nfs state");
-	}
-
-	return 0;
-}
-
-// -----------------------------------------------------------------------------
 int ptfsal_ftruncate(const struct req_op_context *p_context,
 		     struct fsal_export *export, int handle_index,
 		     uint64_t offset)

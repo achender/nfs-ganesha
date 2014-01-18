@@ -351,8 +351,6 @@ int ptfsal_open(struct pt_fsal_obj_handle *p_parent_directory_handle,
 		const char *p_filename, const struct req_op_context *p_context,
 		mode_t mode, ptfsal_handle_t * p_object_handle);
 
-int ptfsal_close_mount_root(fsal_export_context_t * p_export_context);
-
 int ptfsal_ftruncate(const struct req_op_context *p_context,
 		     struct fsal_export *export, int handle_index,
 		     uint64_t offset);

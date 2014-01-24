@@ -393,6 +393,8 @@ populate_dirent(const struct req_op_context *opctx,
 	fsal_status = dir_hdl->ops->lookup(dir_hdl, opctx, name, &entry_hdl);
 	if (FSAL_IS_ERROR(fsal_status)) {
 		*state->status = cache_inode_error_convert(fsal_status);
+		LogEvent(COMPONENT_CACHE_INODE,
+			 "Lookup failed on %s in dir %p", name, dir_hdl);
 		return false;
 	}
 
@@ -502,9 +504,17 @@ cache_inode_readdir_populate(const struct req_op_context *req_ctx,
 		return status;
 	}
 
-	assert(eod);		/* we were supposed to read to the end.... */
-	/* End of work */
-	atomic_set_uint32_t_bits(&directory->flags, CACHE_INODE_DIR_POPULATED);
+	if (!eod) {
+		/* we were supposed to read to the end.... */
+		LogEvent(COMPONENT_CACHE_INODE,
+			 "Readdir didn't reach eod on dir %p.",
+			 directory->obj_handle);
+		status = CACHE_INODE_DELAY;
+	} else {
+		/* End of work */
+		atomic_set_uint32_t_bits(&directory->flags,
+					 CACHE_INODE_DIR_POPULATED);
+	}
 
 	return status;
 }				/* cache_inode_readdir_populate */

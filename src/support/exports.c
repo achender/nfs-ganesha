@@ -822,6 +822,9 @@ static struct config_item client_params[] = {
 		       exportlist_client_entry__, client_perms.options),
 	CONF_ITEM_STR("Clients", 1, MAXPATHLEN, NULL,
 		      exportlist_client_entry__, client.raw_client_str),
+	CONF_ITEM_BOOLBIT("Manage_Gids", false,
+			  EXPORT_OPTION_MANAGE_GIDS,
+			  exportlist_client_entry__, client_perms.options),
 	CONFIG_EOL
 };
 
@@ -854,6 +857,9 @@ static struct config_item export_params[] = {
 		       exportlist, fullpath), /* must chomp '/' */
 	CONF_ITEM_BOOLBIT("Allow_Root_Access", false,
 			  EXPORT_OPTION_ROOT,
+			  exportlist, export_perms.options),
+	CONF_ITEM_BOOLBIT("Manage_Gids", false,
+			  EXPORT_OPTION_MANAGE_GIDS,
 			  exportlist, export_perms.options),
 	CONF_UNIQ_PATH("Pseudo", 1, MAXPATHLEN, NULL,
 		       exportlist, pseudopath),

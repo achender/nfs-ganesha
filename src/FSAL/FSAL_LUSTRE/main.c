@@ -210,7 +210,10 @@ struct config_block lustre_param = {
 
 struct fsal_staticfsinfo_t *lustre_staticinfo(struct fsal_module *hdl)
 {
-	return &lustre_info;
+	struct lustre_fsal_module *myself;
+
+        myself = container_of(hdl, struct lustre_fsal_module, fsal);
+        return &myself->fs_info;
 }
 
 /* Module methods

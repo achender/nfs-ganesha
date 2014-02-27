@@ -48,7 +48,7 @@
 #include "common_utils.h"
 #include "uid2grp.h"
 
-static bool my_getgrouplist_alloc(char *user,
+static bool _getgrouplist_alloc(char *user,
 				  gid_t gid,
 				  struct group_data *gdata,
 				  bool renew)
@@ -129,7 +129,7 @@ bool pwentname2grp(char *namebuff,
 		return false;
 	}
 
-	if (!my_getgrouplist_alloc(p.pw_name, p.pw_gid, gdata, renew))
+	if (!_getgrouplist_alloc(p.pw_name, p.pw_gid, gdata, renew))
 		return false;
 
 	/* Set puid */
@@ -162,7 +162,7 @@ bool pwentuid2grp(uid_t uid, struct gsh_buffdesc *name,
 		return false;
 	}
 
-	if (!my_getgrouplist_alloc(p.pw_name, p.pw_gid, gdata, renew))
+	if (!_getgrouplist_alloc(p.pw_name, p.pw_gid, gdata, renew))
 		return false;
 
 	/* Set puid */
@@ -200,21 +200,16 @@ bool name2grp(const struct gsh_buffdesc *name, struct group_data **gdata)
 
 	if (success) {
 		/* Check for expiration */
-		if ((time(NULL) - (*gdata)->epoch) >
-			nfs_param.core_param.manage_gids_expiration)
+		/* You shouldn't renew if new group is about */
+		/* to be switched */
+		if (((time(NULL) - (*gdata)->epoch) >
+			nfs_param.core_param.manage_gids_expiration) &&
+		      ((*gdata)->new_groups == NULL))	
 			renew = true;
 
 		pthread_mutex_lock(&(*gdata)->lock);
-		if (((*gdata)->refcount != 0) &&
-		    ((*gdata)->new_groups != NULL)) {
-			free((*gdata)->groups);
-			(*gdata)->groups = (*gdata)->new_groups;
-			(*gdata)->new_groups = NULL;
-		}
-		pthread_mutex_unlock(&(*gdata)->lock);
-
-		/* increment refcount */
 		(*gdata)->refcount = (*gdata)->refcount+1;
+		pthread_mutex_unlock(&(*gdata)->lock);
 	}
 
 	if (!success || renew) {
@@ -263,21 +258,16 @@ bool uid2grp(uid_t uid, struct group_data **gdata)
 	if (success) {
 
 		/* Check for expiration */
-		if ((time(NULL) - (*gdata)->epoch) >
-			nfs_param.core_param.manage_gids_expiration)
+		/* You shouldn't renew if new group is about */
+		/* to be switched */
+		if (((time(NULL) - (*gdata)->epoch) >
+			nfs_param.core_param.manage_gids_expiration) &&
+		      ((*gdata)->new_groups == NULL))	
 			renew = true;
 
 		pthread_mutex_lock(&(*gdata)->lock);
-		if (((*gdata)->refcount != 0) &&
-		    ((*gdata)->new_groups != NULL)) {
-			free((*gdata)->groups);
-			(*gdata)->groups = (*gdata)->new_groups;
-			(*gdata)->new_groups = NULL;
-		}
-		pthread_mutex_unlock(&(*gdata)->lock);
-
-		/* increment refcount */
 		(*gdata)->refcount = (*gdata)->refcount + 1;
+		pthread_mutex_unlock(&(*gdata)->lock);
 	}
 
 	if (!success || renew) {
@@ -319,6 +309,14 @@ void uid2grp_unref(uid_t uid)
 		pthread_mutex_lock(&gdata->lock);
 		if (gdata->refcount > 0)
 			gdata->refcount = gdata->refcount - 1;
+
+		if ((gdata->refcount == 0) &&
+		    (gdata->new_groups != 0) ) {
+			/* updated data is to be used, switch to new group */
+			free(gdata->groups);
+			gdata->groups = gdata->new_groups;
+			gdata->new_groups = NULL;
+		}
 		pthread_mutex_unlock(&gdata->lock);
 	}
 }

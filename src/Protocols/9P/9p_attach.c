@@ -131,6 +131,10 @@ int _9p_attach(struct _9p_request_data *req9p, void *worker_data,
 				  preply);
 	}
 
+	/* At that point, we know everything about group, so we do not
+	 * need to keep a hand on uid2grp cache. let's unref the entry */
+	uid2grp_unref(pfid->ucred.caller_uid);
+ 
 	/* Check if root cache entry is correctly set */
 	/** @todo this needs more than just locking... */
 	PTHREAD_RWLOCK_rdlock(&exp->lock);

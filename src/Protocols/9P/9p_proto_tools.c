@@ -238,9 +238,6 @@ int _9p_tools_clunk(struct _9p_fid *pfid)
 	fsal_status_t fsal_status;
 	cache_inode_status_t cache_status;
 
-	/* unref the related group list */
-	uid2grp_unref(pfid->ucred.caller_uid);
-
 	/* If the fid is related to a xattr, free the related memory */
 	if (pfid->specdata.xattr.xattr_content != NULL &&
 	    pfid->specdata.xattr.xattr_write == TRUE) {

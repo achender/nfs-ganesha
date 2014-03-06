@@ -18,19 +18,12 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
  * USA
  *
  * ---------------------------------------
  */
 
-/**
- *
- * \file    fsal_convert.h
- * \version $Revision: 1.13 $
- * \brief   XFS to FSAL type converting function.
- *
- */
 #ifndef _FSAL_CONVERTION_H
 #define _FSAL_CONVERTION_H
 #include "fsi_ipc_ccl.h"
@@ -46,7 +39,7 @@ int fsal2posix_openflags(fsal_openflags_t fsal_flags, int *p_posix_flags);
 int fsal2posix_testperm(fsal_accessflags_t testperm);
 
 /**
- * Converts POSIX attributes (struct stat) to FSAL attributes 
+ * Converts POSIX attributes (struct stat) to FSAL attributes
  * (fsal_attrib_list_t)
  */
 fsal_status_t posix2fsal_attributes(struct stat *p_buffstat,
@@ -76,16 +69,16 @@ fsal_fsid_t posix2fsal_fsid(dev_t posix_devid);
  * to FSAL time type (now struct timespec).
  *
  * XXX Remove me (the entire file), included in
- * The routine is in include/FSAL/fsal_convert.h 
+ * The routine is in include/FSAL/fsal_convert.h
  *
  */
 static inline struct timespec posix2fsal_time(time_t tsec, time_t nsec)
 {
-	struct timespec ts = {.tv_sec = tsec,.tv_nsec = nsec };
-	return (ts);
+	struct timespec ts = {.tv_sec = tsec, .tv_nsec = nsec };
+	return ts;
 }
 
-#define high32m( a ) ( (unsigned int)( a >> 32 ) )
-#define low32m( a ) ( (unsigned int)a )
+#define high32m(a) ((unsigned int)(a >> 32))
+#define low32m(a) ((unsigned int)a)
 
 #endif

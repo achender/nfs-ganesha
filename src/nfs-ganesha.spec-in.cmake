@@ -269,8 +269,10 @@ be used with NFS-Ganesha to support Gluster
 %setup -q -n %{sourcename}
 
 %build
+LIB_PREFIX="/usr"
 cmake .	-DCMAKE_BUILD_TYPE=Debug			\
-	-DCMAKE_INSTALL_PREFIX=$RPM_BUILD_ROOT/usr	\
+	-DLIB_PREFIX=$LIB_PREFIX			\
+	-DCMAKE_INSTALL_PREFIX=$RPM_BUILD_ROOT$LIB_PREFIX\
 	-DCMAKE_BUILD_TYPE=Debug			\
 	-DBUILD_CONFIG=rpmbuild				\
 %if %{with_fsal_zfs}

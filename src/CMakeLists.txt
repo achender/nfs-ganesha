@@ -150,6 +150,13 @@ else( CMAKE_SIZEOF_VOID_P EQUAL 8 )
     set( FSAL_DESTINATION "lib/ganesha" )
 endif( CMAKE_SIZEOF_VOID_P EQUAL 8 )
 
+# Set library prefix
+if ( "${LIB_PREFIX}" STREQUAL "" )
+	set( LIB_PREFIX "/usr" )
+else ( "${LIB_PREFIX}" STREQUAL "" )
+	set( LIB_PREFIX "${LIB_PREFIX}" )
+endif ( "${LIB_PREFIX}" STREQUAL "" )
+
 # FSAL selection
 # FSALs which are enabled by default but could be disabled
 # during the build

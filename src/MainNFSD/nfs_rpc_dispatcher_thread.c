@@ -318,8 +318,8 @@ void Bind_sockets(void)
 				  pdatap->bindaddr_udp6.addr.buf,
 				 (socklen_t) pdatap->si_udp6.si_alen) == -1)
 				LogFatal(COMPONENT_DISPATCH,
-					 "Cannot bind %s udp6 socket, error %d (%s)",
-					 tags[p], errno, strerror(errno));
+					 "Cannot bind %s udp6 socket (index: %d), error %d (%s)",
+					 tags[p], p, errno, strerror(errno));
 
 			memset(&pdatap->sinaddr_tcp6, 0,
 			       sizeof(pdatap->sinaddr_tcp6));

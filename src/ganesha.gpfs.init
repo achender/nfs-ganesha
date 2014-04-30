@@ -38,7 +38,7 @@ LOGFILE=SYSLOG
 #LOGFILE=STDOUT
 EPOCHFILE=/var/lib/nfs/ganesha-epoch
 
-CONFFILE=/etc/ganesha/gpfs.ganesha.nfsd.conf
+CONFFILE=/etc/ganesha/gpfs_config.conf
 
 # Remote quota server
 [ -z "$RQUOTAD" ] && RQUOTAD=`type -path rpc.rquotad`

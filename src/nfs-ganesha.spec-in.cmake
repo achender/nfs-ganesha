@@ -365,6 +365,14 @@ install -m 644 config_samples/pt_config.conf              %{buildroot}%{_sysconf
 install -m 644 config_samples/export_pt.conf              %{buildroot}%{_sysconfdir}/ganesha
 %endif
 
+%if %{with_fsal_gpfs}
+install -m 755 ganesha.gpfs.init               %{buildroot}%{_sysconfdir}/init.d/nfs-ganesha-gpfs
+install -m 644 config_samples/gpfs.ganesha.nfsd.conf %{buildroot}%{_sysconfdir}/ganesha
+install -m 644 config_samples/gpfs.ganesha.exports.conf %{buildroot}%{_sysconfdir}/ganesha
+install -m 644 config_samples/gpfs.ganesha.main.conf %{buildroot}%{_sysconfdir}/ganesha
+install -m 644 config_samples/ganesha.master.conf %{buildroot}%{_sysconfdir}/ganesha
+%endif
+
 make install
 
 
@@ -413,6 +421,11 @@ make install
 %files gpfs
 %defattr(-,root,root,-)
 %{_libdir}/ganesha/libfsalgpfs*
+%config(noreplace) %{_sysconfdir}/init.d/nfs-ganesha-gpfs
+%config(noreplace) %{_sysconfdir}/ganesha/gpfs.ganesha.nfsd.conf
+%config(noreplace) %{_sysconfdir}/ganesha/gpfs.ganesha.main.conf
+%config(noreplace) %{_sysconfdir}/ganesha/ganesha.master.conf
+%config(noreplace) %{_sysconfdir}/ganesha/gpfs.ganesha.exports.conf
 %endif
 
 %if %{with_fsal_zfs}

@@ -225,55 +225,7 @@ static fsal_status_t get_quota(struct fsal_export *exp_hdl,
 			       struct req_op_context *req_ctx,
 			       fsal_quota_t *pquota)
 {
-	struct pt_fsal_export *myself;
-	struct dqblk fs_quota;
-	struct stat path_stat;
-	uid_t id;
-	fsal_errors_t fsal_error = ERR_FSAL_NO_ERROR;
-	int retval;
-
-	myself = container_of(exp_hdl, struct pt_fsal_export, export);
-	retval = stat(filepath, &path_stat);
-	if (retval < 0) {
-		LogMajor(COMPONENT_FSAL,
-			 "PT get_quota, fstat: root_path: %s, fd=%d, errno=(%d) %s",
-			 myself->mntdir, myself->root_fd, errno,
-			 strerror(errno));
-		fsal_error = posix2fsal_error(errno);
-		retval = errno;
-		goto out;
-	}
-	if (path_stat.st_dev != myself->root_dev) {
-		LogMajor(COMPONENT_FSAL,
-			 "PT get_quota: crossed mount boundary! root_path: %s, quota path: %s",
-			 myself->mntdir, filepath);
-		fsal_error = ERR_FSAL_FAULT;	/* maybe a better error? */
-		retval = 0;
-		goto out;
-	}
-	id = (quota_type ==
-	      USRQUOTA) ? req_ctx->creds->caller_uid : req_ctx->creds->
-	    caller_gid;
-	memset((char *)&fs_quota, 0, sizeof(struct dqblk));
-	retval =
-	    quotactl(QCMD(Q_GETQUOTA, quota_type), myself->fs_spec, id,
-		     (caddr_t) &fs_quota);
-	if (retval < 0) {
-		fsal_error = posix2fsal_error(errno);
-		retval = errno;
-		goto out;
-	}
-	pquota->bhardlimit = fs_quota.dqb_bhardlimit;
-	pquota->bsoftlimit = fs_quota.dqb_bsoftlimit;
-	pquota->curblocks = fs_quota.dqb_curspace;
-	pquota->fhardlimit = fs_quota.dqb_ihardlimit;
-	pquota->curfiles = fs_quota.dqb_curinodes;
-	pquota->btimeleft = fs_quota.dqb_btime;
-	pquota->ftimeleft = fs_quota.dqb_itime;
-	pquota->bsize = DEV_BSIZE;
-
- out:
-	return fsalstat(fsal_error, retval);
+	return fsalstat(ERR_FSAL_NOTSUPP, 0);
 }
 
 /* set_quota
@@ -285,70 +237,7 @@ static fsal_status_t set_quota(struct fsal_export *exp_hdl,
 			       struct req_op_context *req_ctx,
 			       fsal_quota_t *pquota, fsal_quota_t *presquota)
 {
-	struct pt_fsal_export *myself;
-	struct dqblk fs_quota;
-	struct stat path_stat;
-	uid_t id;
-	fsal_errors_t fsal_error = ERR_FSAL_NO_ERROR;
-	int retval;
-
-	myself = container_of(exp_hdl, struct pt_fsal_export, export);
-	retval = stat(filepath, &path_stat);
-	if (retval < 0) {
-		LogMajor(COMPONENT_FSAL,
-			 "PT set_quota, fstat: root_path: %s, fd=%d, errno=(%d) %s",
-			 myself->mntdir, myself->root_fd, errno,
-			 strerror(errno));
-		fsal_error = posix2fsal_error(errno);
-		retval = errno;
-		goto err;
-	}
-	if (path_stat.st_dev != myself->root_dev) {
-		LogMajor(COMPONENT_FSAL,
-			 "PT set_quota: crossed mount boundary! root_path: %s, quota path: %s",
-			 myself->mntdir, filepath);
-		fsal_error = ERR_FSAL_FAULT;	/* maybe a better error? */
-		retval = 0;
-		goto err;
-	}
-	id = (quota_type ==
-	      USRQUOTA) ? req_ctx->creds->caller_uid : req_ctx->creds->
-	    caller_gid;
-	memset((char *)&fs_quota, 0, sizeof(struct dqblk));
-	if (pquota->bhardlimit != 0) {
-		fs_quota.dqb_bhardlimit = pquota->bhardlimit;
-		fs_quota.dqb_valid |= QIF_BLIMITS;
-	}
-	if (pquota->bsoftlimit != 0) {
-		fs_quota.dqb_bsoftlimit = pquota->bsoftlimit;
-		fs_quota.dqb_valid |= QIF_BLIMITS;
-	}
-	if (pquota->fhardlimit != 0) {
-		fs_quota.dqb_ihardlimit = pquota->fhardlimit;
-		fs_quota.dqb_valid |= QIF_ILIMITS;
-	}
-	if (pquota->btimeleft != 0) {
-		fs_quota.dqb_btime = pquota->btimeleft;
-		fs_quota.dqb_valid |= QIF_BTIME;
-	}
-	if (pquota->ftimeleft != 0) {
-		fs_quota.dqb_itime = pquota->ftimeleft;
-		fs_quota.dqb_valid |= QIF_ITIME;
-	}
-	retval =
-	    quotactl(QCMD(Q_SETQUOTA, quota_type), myself->fs_spec, id,
-		     (caddr_t) &fs_quota);
-	if (retval < 0) {
-		fsal_error = posix2fsal_error(errno);
-		retval = errno;
-		goto err;
-	}
-	if (presquota != NULL) {
-		return get_quota(exp_hdl, filepath, quota_type, req_ctx,
-				 presquota);
-	}
- err:
-	return fsalstat(fsal_error, retval);
+	return fsalstat(ERR_FSAL_NOTSUPP, 0);
 }
 
 /* extract a file handle from a buffer.

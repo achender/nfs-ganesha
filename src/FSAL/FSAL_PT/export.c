@@ -297,15 +297,8 @@ fsal_status_t pt_create_export(struct fsal_module *fsal_hdl,
 			       struct fsal_export **export)
 {
 	struct pt_fsal_export *myself;
-	FILE *fp;
-	struct mntent *p_mnt;
-	size_t pathlen, outlen = 0;
-	char mntdir[MAXPATHLEN + 1];	/* there has got to be a better way */
-	char fs_spec[MAXPATHLEN + 1];
-	char type[MAXNAMLEN + 1];
 	int retval = 0;
 	struct config_error_type err_type;
-	fsal_status_t status;
 	fsal_errors_t fsal_error = ERR_FSAL_NO_ERROR;
 
 	*export = NULL;		/* poison it first */
@@ -348,111 +341,11 @@ fsal_status_t pt_create_export(struct fsal_module *fsal_hdl,
 	if (retval != 0)
 		goto errout;	/* seriously bad */
 	myself->export.fsal = fsal_hdl;
+	myself->root_handle = NULL;
+	myself->fstype = NULL;
+	myself->fs_spec = NULL;
+	myself->mntdir = NULL;
 
-	/* start looking for the mount point */
-	fp = setmntent(MOUNTED, "r");
-	if (fp == NULL) {
-		retval = errno;
-		LogCrit(COMPONENT_FSAL, "Error %d in setmntent(%s): %s", retval,
-			MOUNTED, strerror(retval));
-		fsal_error = posix2fsal_error(retval);
-		goto errout;
-	}
-	while ((p_mnt = getmntent(fp)) != NULL) {
-		if (p_mnt->mnt_dir != NULL) {
-			pathlen = strlen(p_mnt->mnt_dir);
-			if (pathlen > outlen) {
-				if (strcmp(p_mnt->mnt_dir, "/") == 0) {
-					outlen = pathlen;
-					strncpy(mntdir, p_mnt->mnt_dir,
-						MAXPATHLEN);
-					strncpy(type, p_mnt->mnt_type,
-						MAXNAMLEN);
-					strncpy(fs_spec, p_mnt->mnt_fsname,
-						MAXPATHLEN);
-				} else
-				    if ((strncmp
-					 (export_path, p_mnt->mnt_dir,
-					  pathlen) == 0)
-					&& ((export_path[pathlen] == '/')
-					|| (export_path[pathlen] == '\0'))) {
-					if (strcasecmp(p_mnt->mnt_type, "xfs")
-					    == 0) {
-						LogDebug(COMPONENT_FSAL,
-							 "Mount (%s) is XFS, skipping",
-							 p_mnt->mnt_dir);
-						continue;
-					}
-					outlen = pathlen;
-					strncpy(mntdir, p_mnt->mnt_dir,
-						MAXPATHLEN);
-					strncpy(type, p_mnt->mnt_type,
-						MAXNAMLEN);
-					strncpy(fs_spec, p_mnt->mnt_fsname,
-						MAXPATHLEN);
-				}
-			}
-		}
-	}
-	endmntent(fp);
-	if (outlen <= 0) {
-		LogCrit(COMPONENT_FSAL, "No mount entry matches '%s' in %s",
-			export_path, MOUNTED);
-		fsal_error = ERR_FSAL_NOENT;
-		goto errout;
-	}
-	myself->root_fd = open(mntdir, O_RDONLY | O_DIRECTORY);
-	if (myself->root_fd < 0) {
-		LogMajor(COMPONENT_FSAL,
-			 "Could not open PT mount point %s: rc = %d", mntdir,
-			 errno);
-		fsal_error = posix2fsal_error(errno);
-		retval = errno;
-		goto errout;
-	} else {
-		struct stat root_stat;
-		ptfsal_handle_t *fh = alloca(sizeof(ptfsal_handle_t));
-
-		memset(fh, 0, sizeof(ptfsal_handle_t));
-		fh->data.handle.handle_size = OPENHANDLE_HANDLE_LEN;
-		retval = fstat(myself->root_fd, &root_stat);
-		if (retval < 0) {
-			LogMajor(COMPONENT_FSAL,
-				 "fstat: root_path: %s, fd=%d, errno=(%d) %s",
-				 mntdir, myself->root_fd, errno,
-				 strerror(errno));
-			fsal_error = posix2fsal_error(errno);
-			retval = errno;
-			goto errout;
-		}
-
-		myself->root_dev = root_stat.st_dev;
-		status =
-		    fsal_internal_get_handle_at(NULL, &myself->export,
-						myself->root_fd, export_path,
-						fh);
-		if (FSAL_IS_ERROR(status)) {
-			fsal_error = retval = status.major;
-			retval = errno;
-			LogMajor(COMPONENT_FSAL,
-				 "name_to_handle: root_path: %s, root_fd=%d, retval=%d",
-				 mntdir, myself->root_fd, retval);
-			goto errout;
-		}
-		myself->root_handle = gsh_malloc(sizeof(ptfsal_handle_t));
-		if (myself->root_handle == NULL) {
-			LogMajor(COMPONENT_FSAL,
-				 "memory for root handle, errno=(%d) %s", errno,
-				 strerror(errno));
-			fsal_error = posix2fsal_error(errno);
-			retval = errno;
-			goto errout;
-		}
-		memcpy(myself->root_handle, &fh, sizeof(ptfsal_handle_t));
-	}
-	myself->fstype = gsh_strdup(type);
-	myself->fs_spec = gsh_strdup(fs_spec);
-	myself->mntdir = gsh_strdup(mntdir);
 	retval = load_config_from_node(parse_node,
 				       &export_param,
 				       myself,
@@ -468,16 +361,6 @@ fsal_status_t pt_create_export(struct fsal_module *fsal_hdl,
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 
  errout:
-	if (myself->root_fd >= 0)
-		PTFSAL_close(myself->root_fd);
-	if (myself->root_handle != NULL)
-		gsh_free(myself->root_handle);
-	if (myself->fstype != NULL)
-		gsh_free(myself->fstype);
-	if (myself->mntdir != NULL)
-		gsh_free(myself->mntdir);
-	if (myself->fs_spec != NULL)
-		gsh_free(myself->fs_spec);
 	free_export_ops(&myself->export);
 	PTHREAD_RWLOCK_unlock(&myself->export.lock);
 	pthread_rwlock_destroy(&myself->export.lock);

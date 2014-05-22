@@ -266,7 +266,7 @@ fsal_internal_get_handle_at(const struct req_op_context *p_context,
 	if (stat_rc == 0) {
 		memcpy(&p_handle->data.handle.f_handle,
 		       &buffstat.st_persistentHandle.handle,
-		       sizeof(p_handle->data.handle.f_handle));
+		       sizeof(buffstat.st_persistentHandle.handle));
 		p_handle->data.handle.handle_size =
 		    FSI_CCL_PERSISTENT_HANDLE_N_BYTES;
 		p_handle->data.handle.handle_type =

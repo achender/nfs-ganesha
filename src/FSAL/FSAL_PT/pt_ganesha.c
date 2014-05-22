@@ -864,7 +864,7 @@ int ptfsal_open_by_handle(const struct req_op_context *p_context,
 		memset(&cacheEntry, 0x00, sizeof(CACHE_TABLE_ENTRY_T));
 		handle_to_name_cache_data.handle_index = open_rc;
 		strncpy(handle_to_name_cache_data.m_name, fsi_filename,
-			sizeof(handle_to_name_cache_data.m_name));
+			sizeof(handle_to_name_cache_data.m_name)-1);
 		cacheEntry.key = p_fsi_handle->data.handle.f_handle;
 		cacheEntry.data = &handle_to_name_cache_data;
 		pthread_rwlock_wrlock(&g_fsi_cache_handle_rw_lock);

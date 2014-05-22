@@ -410,7 +410,7 @@ static fsal_status_t read_dirents(struct fsal_obj_handle *dir_hdl,
 	dir_desc.context = opctx;
 	dir_desc.handle = myself->handle;
 	dir_desc.dir_offset = 0;
-	strncpy(dir_desc.path, fsi_parent_dir_path, sizeof(dir_desc.path));
+	strncpy(dir_desc.path, fsi_parent_dir_path, sizeof(dir_desc.path)-1);
 
 	*eof = 0;
 	while (*eof == 0) {

@@ -40,6 +40,9 @@
 #include <rpc/clnt.h>
 #include <gssapi/gssapi.h>
 
+#define RPCSEC_GSS_MAXSEQ MAXSEQ
+#define RPCSEC_GSS_MAXPROC 3
+
 /* RPCSEC_GSS control procedures. */
 typedef enum {
 	RPCSEC_GSS_DATA = 0,

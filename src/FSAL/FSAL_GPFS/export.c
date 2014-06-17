@@ -57,6 +57,7 @@ static void release(struct fsal_export *exp_hdl)
 
 	myself = container_of(exp_hdl, struct gpfs_fsal_export, export);
 
+	gpfs_unexport_filesystems(myself);
 	fsal_detach_export(exp_hdl->fsal, &exp_hdl->exports);
 	free_export_ops(exp_hdl);
 
@@ -638,6 +639,7 @@ int gpfs_claim_filesystem(struct fsal_filesystem *fs, struct fsal_export *exp)
 			LogCrit(COMPONENT_THREAD,
 				"can't set pthread's stack size");
 
+		gpfs_fs->up_ops = exp->up_ops;
 		retval = pthread_create(&gpfs_fs->up_thread,
 					&attr_thr,
 					GPFSFSAL_UP_Thread,
@@ -650,8 +652,6 @@ int gpfs_claim_filesystem(struct fsal_filesystem *fs, struct fsal_export *exp)
 				retval, strerror(retval));
 			goto errout;
 		}
-
-		gpfs_fs->up_ops = exp->up_ops;
 	}
 
 	fs->private = gpfs_fs;

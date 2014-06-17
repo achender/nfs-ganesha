@@ -139,6 +139,14 @@ Requires: nfs-ganesha
 This package contains a FSAL shared object to
 be used with NFS-Ganesha to support PROXY based filesystems
 
+%package utils
+Summary: The NFS-GANESHA'snfs-ganesha-2.0-0.1.1-Source. Util scripts
+Group: Applications/System
+Requires: nfs-ganesha
+
+%description utils
+This package contains utility scripts for use with NFS-GANESHA
+
 # Option packages start here. use "rpmbuild --with lustre" (or equivalent)
 # for activating this part of the spec file
 
@@ -323,11 +331,13 @@ mkdir -p %{buildroot}%{_sysconfdir}/ganesha/
 mkdir -p %{buildroot}%{_sysconfdir}/dbus-1/system.d
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 mkdir -p %{buildroot}%{_bindir}
+mkdir -p %{buildroot}%{_bindir}/nfs_ganesha
 mkdir -p %{buildroot}%{_sbindir}
 mkdir -p %{buildroot}%{_libdir}/ganesha
 install -m 644 scripts/ganeshactl/org.ganesha.nfsd.conf	%{buildroot}%{_sysconfdir}/dbus-1/system.d
 install -m 755 ganesha.sysconfig			%{buildroot}%{_sysconfdir}/sysconfig/ganesha
 install -m 755 tools/mount.9P				%{buildroot}%{_sbindir}/mount.9P
+install -m 644 scripts/ganeshactl/*.py			%{buildroot}%{_bindir}/nfs_ganesha/
 
 %if 0%{?fedora}
 mkdir -p %{buildroot}%{_unitdir}
@@ -389,6 +399,10 @@ make DESTDIR=%{buildroot} install
 %files proxy
 %defattr(-,root,root,-)
 %{_libdir}/ganesha/libfsalproxy*
+
+%files utils
+%defattr(-,root,root,-)
+%{_bindir}/nfs_ganesha/*.py
 
 # Optionnal packages
 %if %{with_fsal_gpfs}

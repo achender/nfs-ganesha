@@ -66,6 +66,12 @@
 %global with_rdma 0
 %endif
 
+%if %{?_with_utils:1}%{!?_with_utils:0}
+%global with_utils 1
+%else
+%global with_utils 0
+%endif
+
 
 #%define sourcename nfs-ganesha-2.0-RC5-0.1.1-Source
 %define sourcename @CPACK_SOURCE_PACKAGE_FILE_NAME@
@@ -138,6 +144,14 @@ Requires: nfs-ganesha
 %description proxy
 This package contains a FSAL shared object to
 be used with NFS-Ganesha to support PROXY based filesystems
+
+%package utils
+Summary: The NFS-GANESHA'snfs-ganesha-2.0-0.1.1-Source util scripts
+Group: Applications/System
+Requires: nfs-ganesha
+
+%description utils
+This package contains utility scripts for use with NFS-GANESHA
 
 # Option packages start here. use "rpmbuild --with lustre" (or equivalent)
 # for activating this part of the spec file
@@ -310,6 +324,9 @@ cmake .	-DCMAKE_BUILD_TYPE=Debug			\
 %if %{with_rdma}
 	-DUSE_9P_RDMA=ON				\
 %endif
+%if %{with_utils}
+        -DUSE_ADMIN_TOOLS=ON                            \
+%endif
 	-DUSE_FSAL_VFS=ON				\
 	-DUSE_FSAL_PROXY=ON				\
 	-DUSE_DBUS=ON					\
@@ -349,8 +366,15 @@ install -m 755 ganesha.pt.init                            %{buildroot}%{_sysconf
 install -m 644 config_samples/pt.conf                     %{buildroot}%{_sysconfdir}/ganesha
 %endif
 
-make DESTDIR=%{buildroot} install
+%if %{with_utils}
+pushd .
+cd scripts/ganeshactl/
+installed_scripts=`python setup.py --quiet install --root=%{buildroot} --record=stdout`
+%global script_list %(echo $installed_scripts)
+popd
+%endif
 
+make DESTDIR=%{buildroot} install
 
 %files
 %defattr(-,root,root,-)
@@ -389,6 +413,12 @@ make DESTDIR=%{buildroot} install
 %files proxy
 %defattr(-,root,root,-)
 %{_libdir}/ganesha/libfsalproxy*
+
+%if %{with_utils}
+%files utils
+%defattr(-,root,root,-)
+%script_list
+%endif
 
 # Optionnal packages
 %if %{with_fsal_gpfs}

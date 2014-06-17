@@ -1012,7 +1012,7 @@ set(USE_ADMIN_TOOLS ${USE_ADMIN_TOOLS}
   "Package Admin Scripts"
   FORCE)
 
-set(USE_ADMIN_TOOLS ${USE_TSAN}
+set(USE_TSAN ${USE_TSAN}
   CACHE BOOL
   "Enable GCC Thread-Sanitizer"
   FORCE)
@@ -1076,6 +1076,10 @@ endif(USE_FSAL_PT)
 if(USE_9P_RDMA)
     set( WITH_ARG "${WITH_ARG} --with rdma")
 endif(USE_9P_RDMA)
+
+if(USE_ADMIN_TOOLS)
+    set( WITH_ARG "${WITH_ARG} --with utils")
+endif(USE_ADMIN_TOOLS)
 
 add_custom_target( rpm DEPENDS dist)
 add_custom_command(TARGET rpm

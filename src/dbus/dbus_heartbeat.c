@@ -51,10 +51,6 @@
 #include "abstract_atomic.h"
 #include "gsh_intrinsic.h"
 
-#define HEARTBEAT_PATH  "/org/ganesha/nfsd/heartbeat"
-#define HEARTBEAT_IFACE "org.ganesha.nfsd.heartbeat"
-#define HEARTBEAT_NAME  "heartbeat"
-
 struct _ganesha_health {
 	int old_enqueue;
 	int old_dequeue;
@@ -88,8 +84,6 @@ void get_ganesha_health(struct _ganesha_health *hstats)
 int dbus_heartbeat_cb(void *arg)
 {
 	SetNameFunction("dbus_heartbeat");
-	char message[256];
-	char *msgPtr = message;
 	int err = 0;
 	int rc = BCAST_STATUS_OK;
 
@@ -97,9 +91,9 @@ int dbus_heartbeat_cb(void *arg)
 
 	if (healthstats.ishealthy) {
 		/* send the heartbeat pulse */
-		err = gsh_dbus_broadcast(HEARTBEAT_PATH,
+		err = gsh_dbus_broadcast(DBUS_PATH DBUS_ADMIN_NAME,
 					 HEARTBEAT_IFACE,
-					 HEARTBEAT_NAME,
+					 DBUS_ADMIN_NAME,
 					 DBUS_TYPE_BOOLEAN
 					 &healthstats.ishealthy,
 					 DBUS_TYPE_INVALID);

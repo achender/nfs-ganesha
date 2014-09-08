@@ -575,7 +575,7 @@ int32_t gsh_dbus_register_path(const char *name,
 	int code = 0;
 
 	/* XXX if this works, add ifc level */
-	snprintf(path, 512, "/org/ganesha/nfsd/%s", name);
+	snprintf(path, 512, "%s%s", DBUS_PATH, name);
 
 	handler = (struct ganesha_dbus_handler *)
 	    gsh_malloc(sizeof(struct ganesha_dbus_handler));

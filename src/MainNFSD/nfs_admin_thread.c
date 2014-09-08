@@ -232,15 +232,23 @@ static struct gsh_dbus_method *admin_methods[] = {
 };
 
 static struct gsh_dbus_interface admin_interface = {
-	.name = "org.ganesha.nfsd.admin",
+	.name = ADMIN_IFACE,
 	.props = NULL,
 	.methods = admin_methods,
+	.signals = NULL
+};
+
+static struct gsh_dbus_interface heart_beat_interface = {
+	.name = HEARTBEAT_IFACE,
+	.props = NULL,
+	.methods = NULL,
 	.signals = NULL
 };
 
 static struct gsh_dbus_interface *admin_interfaces[] = {
 	&admin_interface,
 	&log_interface,
+	&heart_beat_interface,
 	NULL
 };
 
@@ -255,7 +263,7 @@ void nfs_Init_admin_thread(void)
 	admin_command = admin_none_pending;
 	admin_status = admin_stable;
 #ifdef USE_DBUS
-	gsh_dbus_register_path("admin", admin_interfaces);
+	gsh_dbus_register_path(DBUS_ADMIN_NAME, admin_interfaces);
 #endif				/* USE_DBUS */
 	LogEvent(COMPONENT_NFS_CB, "Admin thread initialized");
 }

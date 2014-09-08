@@ -59,6 +59,12 @@
  * and signals.
  */
 
+#define HEARTBEAT_IFACE "org.ganesha.nfsd.heartbeat"
+#define ADMIN_IFACE	"org.ganesha.nfsd.admin"
+
+#define DBUS_PATH       "/org/ganesha/nfsd/"
+#define DBUS_ADMIN_NAME "admin"
+
 #define STATUS_REPLY      \
 {                         \
 	.name = "status", \

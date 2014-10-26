@@ -45,14 +45,12 @@ Client = namedtuple('Client',
 
 class ClientMgr():
     
-    def __init__(self, service, path, interface, show_status, show_clients, parent=None):
+    def __init__(self, service, path, interface):
         self.dbus_service_name = service
         self.dbus_path = path
         self.dbus_interface = interface
 
         self.bus = dbus.SystemBus()
-        self.show_status = show_status
-        self.show_clients = show_clients
         try:
             self.dbusobj = self.bus.get_object(self.dbus_service_name,
                                 self.dbus_path)
@@ -97,9 +95,8 @@ class ClientMgr():
     def AddClient(self, ipaddr):
         add_client_method = self.dbusobj.get_dbus_method("AddClient",
                                                          self.dbus_interface)
-        add_client_method(ipaddr,
-                          reply_handler=self.clientmgr_reply,
-                          error_handler=self.clientmgr_error)
+        reply = add_client_method(ipaddr)
+        print(reply)
 
     def RemoveClient(self, ipaddr):
         remove_client_method = self.dbusobj.get_dbus_method("RemoveClient",

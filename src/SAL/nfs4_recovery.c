@@ -78,6 +78,7 @@ void nfs4_start_grace(nfs_grace_start_t *gsp)
 	}
 
 	PTHREAD_MUTEX_lock(&grace.g_mutex);
+	LogInfo(COMPONENT_STATE,"ACH: &grace.g_mutex LOCKED");
 
 	/* grace should always be greater than or equal to lease time,
 	 * some clients are known to have problems with grace greater than 60
@@ -102,12 +103,14 @@ void nfs4_start_grace(nfs_grace_start_t *gsp)
 			cancel_all_nlm_blocked();
 		else {
 			nfs_release_nlm_state(gsp->ipaddr);
-			if (gsp->event == EVENT_RELEASE_IP)
+			if (gsp->event == EVENT_RELEASE_IP) {
+				LogInfo(COMPONENT_STATE,"ACH: calling nfs_release_v4_client");
 				nfs_release_v4_client(gsp->ipaddr);
-			else
+			} else
 				nfs4_load_recov_clids_nolock(gsp);
 		}
 	}
+	LogInfo(COMPONENT_STATE,"ACH: UNLOCKING &grace.g_mutex");
 	PTHREAD_MUTEX_unlock(&grace.g_mutex);
 }
 
@@ -1381,14 +1384,17 @@ static void nfs_release_v4_client(char *ip)
 	LogEvent(COMPONENT_STATE, "NFS Server V4 recovery release ip %s", ip);
 
 	/* go through the confirmed clients looking for a match */
+	LogInfo(COMPONENT_STATE,"ACH: Enter client loop");
 	for (i = 0; i < ht->parameter.index_size; i++) {
-
+		LogInfo(COMPONENT_STATE,"ACH: client loop iteration: %d", i);
 		PTHREAD_RWLOCK_wrlock(&ht->partitions[i].lock);
 		head_rbt = &ht->partitions[i].rbt;
 
 		/* go through all entries in the red-black-tree */
+		LogInfo(COMPONENT_STATE,"ACH: Enter RBT entry loop");
 		RBT_LOOP(head_rbt, pn) {
 			pdata = RBT_OPAQ(pn);
+			LogInfo(COMPONENT_STATE,"ACH:  RBT entry loop iteration for pdata %p", pdata);
 
 			cp = (nfs_client_id_t *) pdata->val.addr;
 			PTHREAD_MUTEX_lock(&cp->cid_mutex);
@@ -1406,6 +1412,7 @@ static void nfs_release_v4_client(char *ip)
 
 				PTHREAD_MUTEX_lock(&recp->cr_mutex);
 
+				LogInfo(COMPONENT_STATE,"ACH: calling nfs_client_id_expire");
 				nfs_client_id_expire(cp, true);
 
 				PTHREAD_MUTEX_unlock(&recp->cr_mutex);
@@ -1419,8 +1426,10 @@ static void nfs_release_v4_client(char *ip)
 			}
 			RBT_INCREMENT(pn);
 		}
+		LogInfo(COMPONENT_STATE,"ACH: Exit RBT entry loop");
 		PTHREAD_RWLOCK_unlock(&ht->partitions[i].lock);
 	}
+	LogInfo(COMPONENT_STATE,"ACH: Exit client loop");
 }
 
 /** @} */

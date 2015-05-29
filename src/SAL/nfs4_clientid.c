@@ -889,6 +889,7 @@ bool nfs_client_id_expire(nfs_client_id_t *clientid, bool make_stale)
 	 * and it will spam the log with warnings... Such a refcount bug will
 	 * be quickly fixed :-).
 	 */
+	LogInfo(COMPONENT_CLIENTID,"ACH: Enter client lock owners loop");
 	while (true) {
 		state_owner_t *owner;
 
@@ -897,7 +898,7 @@ bool nfs_client_id_expire(nfs_client_id_t *clientid, bool make_stale)
 		owner = glist_first_entry(&clientid->cid_lockowners,
 					  state_owner_t,
 					  so_owner.so_nfs4_owner.so_perclient);
-
+		LogInfo(COMPONENT_CLIENTID,"ACH: client lock owners loop iteration for owner %p", owner);
 
 		if (owner == NULL) {
 			PTHREAD_MUTEX_unlock(&clientid->cid_mutex);
@@ -934,9 +935,10 @@ bool nfs_client_id_expire(nfs_client_id_t *clientid, bool make_stale)
 				LogFullDebug(COMPONENT_CLIENTID,
 					     "Expired State for {%s}", str);
 		}
-
+		LogInfo(COMPONENT_CLIENTID,"ACH: client lock owners loop: calling dec_state_owner_ref");
 		dec_state_owner_ref(owner);
 	}
+	LogInfo(COMPONENT_CLIENTID,"ACH: Exit client lock owners loop");
 
 	/* revoke layouts for this client*/
 	revoke_owner_layouts(&clientid->cid_owner);
@@ -947,6 +949,7 @@ bool nfs_client_id_expire(nfs_client_id_t *clientid, bool make_stale)
 	 * and it will spam the log with warnings... Such a refcount bug will
 	 * be quickly fixed :-).
 	 */
+	LogInfo(COMPONENT_CLIENTID,"ACH: Enter client lock owners release loop");
 	while (true) {
 		state_owner_t *owner;
 
@@ -955,7 +958,7 @@ bool nfs_client_id_expire(nfs_client_id_t *clientid, bool make_stale)
 		owner = glist_first_entry(&clientid->cid_openowners,
 					  state_owner_t,
 					  so_owner.so_nfs4_owner.so_perclient);
-
+		LogInfo(COMPONENT_CLIENTID,"ACH: client lock owners release loop iteration for owner %p", owner);
 		if (owner == NULL) {
 			PTHREAD_MUTEX_unlock(&clientid->cid_mutex);
 			break;
@@ -992,8 +995,10 @@ bool nfs_client_id_expire(nfs_client_id_t *clientid, bool make_stale)
 					     "Expired State for {%s}", str);
 		}
 
+		LogInfo(COMPONENT_CLIENTID,"ACH: client lock owners release loop: calling dec_state_owner_ref");
 		dec_state_owner_ref(owner);
 	}
+	LogInfo(COMPONENT_CLIENTID,"ACH: Exit client lock owners release loop");
 
 	/* revoke delegations for this client*/
 	revoke_owner_delegs(&clientid->cid_owner);

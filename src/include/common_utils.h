@@ -16,6 +16,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <execinfo.h>
 
 #include "gsh_types.h"
 #include "log.h"
@@ -557,6 +558,45 @@ static inline int strmaxcat(char *dest, const char *src, size_t dest_size)
 
 	memcpy(dest + destlen, src, srclen + 1);
 	return 0;
+}
+
+static inline void logbacktrace(){
+    int MAX_STACK_DEPTH = 50;
+    void * stackTrace[MAX_STACK_DEPTH];
+
+    unsigned int stackLength = 0;
+    unsigned int i =0;
+    unsigned int j =0;
+    int stackDepth = backtrace (stackTrace, MAX_STACK_DEPTH);
+    char **backTraceFunctionNames = backtrace_symbols(stackTrace, stackDepth);
+
+    //calc the size of the back trace
+    for(i=0; i < stackDepth; i++)
+    {
+        stackLength+=strlen(backTraceFunctionNames[i])+1;//add 1 for the '\n' deliminator
+    }
+    stackLength+=1; // add 1 for the null terminator
+
+    //construct the backtrace
+    char backtraceBuffer[stackLength];
+    memset(backtraceBuffer, 0x00, sizeof(backtraceBuffer));
+    for(i=0; i < stackDepth; i++)
+    {
+        sprintf(&backtraceBuffer[j], "%s", backTraceFunctionNames[i]);
+        j+=strlen(backTraceFunctionNames[i]);
+
+        if(i+1 != stackDepth)
+        {
+            backtraceBuffer[j] =  '\n';
+            j+=1;
+        }
+    }
+
+    backtraceBuffer[j] =  '\0';
+    j+=1;
+
+   LogInfo(COMPONENT_MAIN, "%s", backtraceBuffer);
+
 }
 
 #endif				/* !COMMON_UTILS_H */

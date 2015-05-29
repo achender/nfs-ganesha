@@ -865,7 +865,10 @@ void inc_state_owner_ref(state_owner_t *owner)
 	bool str_valid = false;
 	int32_t refcount;
 
-	if (isFullDebug(COMPONENT_STATE)) {
+	LogInfo(COMPONENT_STATE,"Enter inc_state_owner_ref");
+	logbacktrace();
+
+	if (1) { //isFullDebug(COMPONENT_STATE)) {
 		display_owner(&dspbuf, owner);
 		str_valid = true;
 	}
@@ -873,7 +876,7 @@ void inc_state_owner_ref(state_owner_t *owner)
 	refcount = atomic_inc_int32_t(&owner->so_refcount);
 
 	if (str_valid)
-		LogFullDebug(COMPONENT_STATE,
+		LogInfo(COMPONENT_STATE,
 			     "Increment refcount now=%" PRId32 " {%s}",
 			     refcount, str);
 }
@@ -978,6 +981,7 @@ void dec_state_owner_ref(state_owner_t *owner)
 		str_valid = true;
 	}
 
+	LogInfo(COMPONENT_STATE, "ACH: Calling atomic_dec_int32_t");
 	refcount = atomic_dec_int32_t(&owner->so_refcount);
 
 	if (refcount != 0) {

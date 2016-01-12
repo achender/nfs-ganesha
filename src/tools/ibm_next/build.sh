@@ -9,5 +9,6 @@ OPTS="$OPTS --with-nfs4-minorversion=0"
 OPTS="$OPTS --enable-nfs4-acl"
 OPTS="$OPTS --enable-mspac"
 OPTS="$OPTS --prefix=/usr"
+OPTS="$OPTS --disable-nfsidmap"
 ./configure $OPTS
 make rpm

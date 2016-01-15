@@ -106,7 +106,8 @@ iterators invalidated are those referring to the deleted node.
   ((__header)->root = 0,						\
    (__header)->leftmost = 0,						\
    (__header)->rightmost = 0,						\
-   (__header)->rbt_num_node = 0)
+   (__header)->rbt_num_node = 0,					\
+   (__header)->compare_to = NULL)
 
 #define RBT_COUNT(__header)	((__header)->rbt_num_node)
 
@@ -125,6 +126,13 @@ iterators invalidated are those referring to the deleted node.
  *   __node is any node
  */
 #define RBT_OPAQ(__node)	((__node)->rbt_opaq)
+
+/*
+ * returns 1, 0, or -1 if v1 is greater than, equal to or less than v1
+ * If compare_to is available use it.  
+ * Otherwise compare integer values of v1 and v2 directly
+ */
+#define COMPARE_TO(v1, v2, hdr) ( (hdr)->compare_to==NULL ? (v1==v2?0:(v1>v2?1:-1)) : ((*((hdr)->compare_to))(v1,v2)) )
 
 /*
  * For RBT_INCREMENT and RBT_DECREMENT :
@@ -248,7 +256,7 @@ iterators invalidated are those referring to the deleted node.
     (__header)->root = (__node);          /* __node is root */		\
     (__header)->rightmost = (__node);     /* __node is rightmost */	\
     (__header)->leftmost = (__node);      /* __node is leftmost */	\
-  } else if (((__node)->rbt_value == __y->rbt_value) &&			\
+  } else if ((COMPARE_TO ((__node)->rbt_value, __y->rbt_value, __header) == 0) &&			\
              __y->next && __y->left) {					\
     /* __y has two children and its value is equal to the value of node */ \
     __y = __y->left;							\
@@ -256,8 +264,8 @@ iterators invalidated are those referring to the deleted node.
       __y = __y->next; 							\
     __y->next = (__node);						\
     (__node)->anchor = &__y->next;					\
-  } else if (((__node)->rbt_value > __y->rbt_value) ||			\
-             (((__node)->rbt_value == __y->rbt_value) && __y->left)) {	\
+  } else if ((COMPARE_TO((__node)->rbt_value, __y->rbt_value, __header) > 0) ||			\
+             ((COMPARE_TO((__node)->rbt_value, __y->rbt_value, __header) == 0) && __y->left)) {	\
     __y->next = (__node);						\
     (__node)->anchor = &__y->next;					\
     if (__y == (__header)->rightmost) {					\
@@ -508,9 +516,9 @@ iterators invalidated are those referring to the deleted node.
   __x = (__header)->root;						\
   while (__x) {								\
     (__node) = __x;							\
-    if (__x->rbt_value > (__val)) {					\
+    if (COMPARE_TO(__x->rbt_value, (__val), __header) > 0) {		\
       __x = __x->left;							\
-    } else if (__x->rbt_value < (__val)) {				\
+    } else if (COMPARE_TO(__x->rbt_value, (__val), __header) < 0) {	\
       __x = __x->next;							\
     } else {								\
       break;								\
@@ -545,22 +553,22 @@ iterators invalidated are those referring to the deleted node.
   (__node) = 0;								\
   __x = (__header)->root;						\
   while (__x) {								\
-    if (__x->rbt_value > (__val)) {					\
+    if (COMPARE_TO(__x->rbt_value, (__val), __header)>0) {					\
       __x = __x->left;							\
-    } else if (__x->rbt_value < (__val)) {				\
+    } else if (COMPARE_TO(__x->rbt_value, (__val), __header)<0) {				\
       __x = __x->next;							\
     } else {								\
       (__node) = __x;							\
       while (__x) {							\
         while ((__x = __x->left)) {					\
-          if (__x->rbt_value < (__val))					\
+          if (COMPARE_TO(__x->rbt_value, (__val), __header)<0)					\
             break;							\
           (__node) = __x;						\
         }								\
         if (__x == 0)							\
           break;							\
         while ((__x = __x->next)) {					\
-          if (__x->rbt_value == (__val)) {				\
+          if (COMPARE_TO(__x->rbt_value, (__val), __header)==0) {				\
             (__node) = __x;						\
             break;							\
           }								\
@@ -624,11 +632,11 @@ iterators invalidated are those referring to the deleted node.
         (__error) = 3;							\
         break;								\
       }									\
-      if (__L && (__L->rbt_value > (__it)->rbt_value)) {		\
+      if (__L && (COMPARE_TO(__L->rbt_value, (__it)->rbt_value, __header)>0)) {		\
         (__error) = 4;							\
         break;								\
       }									\
-      if (__R && (__R->rbt_value < (__it)->rbt_value)) {		\
+      if (__R && (COMPARE_TO(__R->rbt_value, (__it)->rbt_value, __header)<0)) {		\
         (__error) = 5;							\
         break;								\
       }									\

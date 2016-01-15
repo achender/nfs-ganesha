@@ -115,6 +115,7 @@ struct rbt_head
   struct rbt_node *leftmost;    /* leftmost node   */
   struct rbt_node *rightmost;   /* rightmost nodei */
   unsigned int rbt_num_node;    /* number of nodes */
+  int (*compare_to)(uint64_t, uint64_t); /* custom compare to function pointer*/
 };
 
 /*

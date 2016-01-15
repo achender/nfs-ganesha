@@ -40,6 +40,210 @@
 #include "fsal_internal.h"
 #include "fsal_convert.h"
 #include "FSAL/access_check.h"
+#include <signal.h>
+
+pthread_mutex_t cache_handle_mutex;
+
+//struct to cache handles and parents
+struct handle_cache_node {
+   int hdl_size;
+   void *handle;
+   void *parent_handle;
+   char *name;
+};
+
+
+struct rbt_head rbt;
+
+int compare_to(uint64_t v1, uint64_t v2){
+ 	return memcmp(((struct handle_cache_node *)v1)->handle,
+		      ((struct handle_cache_node *)v2)->handle,
+		      ((struct handle_cache_node *)v1)->hdl_size);
+}
+
+void initHandleCache(){
+	pthread_mutex_init(&cache_handle_mutex, NULL);
+	RBT_HEAD_INIT(&rbt);
+	rbt.compare_to = &compare_to;
+}
+
+
+//add a handle to the list. Abort if bad handle is detected
+void cache_handle(fsal_handle_t * p_parent_directory_handle,
+		  fsal_handle_t * p_child_handle, 
+                  fsal_name_t * p_filename) {
+	struct handle_cache_node *new;
+	struct handle_cache_node *cachedHandle = NULL;
+	int hdl_size = sizeof(p_child_handle->data.handle.f_handle);
+	int name_len = sizeof(p_filename->name);
+	int parent_handles_match = 0;
+	struct rbt_node *locator;
+	struct rbt_node *mutator = NULL;
+	struct handle_cache_node wrapper;
+
+	pthread_mutex_lock(&cache_handle_mutex);
+
+	//if the file name is "..", do not cache. Verify it is the same as its grandparent.
+	if (strcmp(p_filename->name, "..")==0) {
+		//if it is ".." try to find the actual handle
+		wrapper.handle = p_parent_directory_handle->data.handle.f_handle;
+		wrapper.hdl_size = hdl_size;
+		RBT_FIND(&rbt, locator, ((uint64_t)&wrapper));
+
+		//dont have it yet?  nothing we can do.  do not cache ".."
+		if(locator == NULL) {
+			goto out;
+		} else {
+			cachedHandle = (struct handle_cache_node *)(locator->rbt_opaq);
+			if (memcmp(cachedHandle->handle, wrapper.handle, hdl_size) != 0)
+				goto out;
+		}
+		
+		//the handle for ".." should match the grand parent.  Maybe null in the case of root
+		parent_handles_match = 0;
+                if (cachedHandle->parent_handle == NULL && p_child_handle->data.handle.f_handle == NULL)
+                        parent_handles_match = 1;
+                if ((cachedHandle->parent_handle != NULL && p_child_handle->data.handle.f_handle != NULL) &&
+                          memcmp(cachedHandle->parent_handle,
+                          p_child_handle->data.handle.f_handle,
+                          hdl_size) == 0)
+                        parent_handles_match = 1;
+
+		//if they dont match there may be a bug
+		if (parent_handles_match != 1){
+			LogEvent(COMPONENT_FSAL,"ACH: ERROR bad parent handle detected");
+                        if(cachedHandle->parent_handle != NULL)
+                                log_handle("cached parent: ", cachedHandle->parent_handle, hdl_size);
+                        else
+                                LogEvent(COMPONENT_FSAL,"cached parent:NULL");
+                        log_handle("cached child: ", cachedHandle->handle, hdl_size);
+                        LogEvent(COMPONENT_FSAL,"cached name:%s", cachedHandle->name);
+
+                        if (p_parent_directory_handle != NULL)
+                                log_handle("this parent: ", p_parent_directory_handle->data.handle.f_handle, hdl_size);
+                        else
+                                LogEvent(COMPONENT_FSAL,"this parent:NULL");
+                        log_handle("this child: ", p_child_handle->data.handle.f_handle, hdl_size);
+                        LogEvent(COMPONENT_FSAL,"this name:%s",p_filename->name);
+
+			raise (SIGABRT);
+			//goto out;
+		}
+
+		//do not cache ".."
+		goto out;
+	}
+
+	//search tree for this handle
+        wrapper.handle = p_child_handle->data.handle.f_handle;
+        wrapper.hdl_size = hdl_size;
+        RBT_FIND(&rbt, locator, ((uint64_t)&wrapper));
+
+        //did we find it?
+        if(locator != NULL) {
+		cachedHandle = (struct handle_cache_node *)(locator->rbt_opaq);
+                if (memcmp(cachedHandle->handle, wrapper.handle, hdl_size) != 0)
+                	cachedHandle = NULL;
+        }
+
+
+
+	//if we found a handle check to see if it is the same
+	if (cachedHandle != NULL) {
+
+		//check to see if parent handles match.  Parent may be null in the case of root
+		parent_handles_match = 0;
+
+		if (p_parent_directory_handle == NULL && cachedHandle->parent_handle == NULL)
+			parent_handles_match = 1;
+		if ((p_parent_directory_handle != NULL && cachedHandle->parent_handle != NULL) &&
+			  memcmp(p_parent_directory_handle->data.handle.f_handle,
+	                         cachedHandle->parent_handle,
+	                         hdl_size) == 0)
+			parent_handles_match = 1;
+
+		//if everything matches, we have already cached this handle
+		if (parent_handles_match == 1 &&
+		     strncmp(cachedHandle->name, p_filename->name, p_filename->len) == 0) {
+			goto out;
+		}
+
+		//if they dont match, this may be a bug
+		LogEvent(COMPONENT_FSAL,"ACH: ERROR duplicate file handle detected");
+		if(cachedHandle->parent_handle != NULL) 
+			log_handle("cached parent: ", cachedHandle->parent_handle, hdl_size);
+		else
+			LogEvent(COMPONENT_FSAL,"cached parent:NULL");
+		log_handle("cached child: ", cachedHandle->handle, hdl_size);
+		LogEvent(COMPONENT_FSAL,"cached name:%s", cachedHandle->name);
+
+		if (p_parent_directory_handle != NULL)
+	             	log_handle("this parent: ", p_parent_directory_handle->data.handle.f_handle, hdl_size);
+		else
+			LogEvent(COMPONENT_FSAL,"this parent:NULL");
+	        log_handle("this child: ", p_child_handle->data.handle.f_handle, hdl_size);
+	        LogEvent(COMPONENT_FSAL,"this name:%s",p_filename->name);
+
+		raise (SIGABRT);
+		//goto out;
+	}
+
+	//otherwise store the handle in the cache
+	new  = malloc(sizeof(struct handle_cache_node));
+	memset(new, 0, sizeof(struct handle_cache_node));
+        if (new == NULL) {
+           LogEvent(COMPONENT_FSAL,"ACH: ERROR malloc failed");
+           raise (SIGABRT);
+        }
+
+        if (p_parent_directory_handle != NULL){
+	        new->parent_handle = malloc(hdl_size);
+	        if (new->parent_handle == NULL) {
+	           LogEvent(COMPONENT_FSAL,"ACH: ERROR malloc parent handle failed");
+	           raise (SIGABRT);
+	        }
+
+                memcpy( new->parent_handle,
+                        p_parent_directory_handle->data.handle.f_handle,
+                        hdl_size);
+	}
+
+        new->handle = malloc(hdl_size);
+        if (new->handle == NULL) {
+           LogEvent(COMPONENT_FSAL,"ACH: ERROR malloc child handle failed");
+           raise (SIGABRT);
+        }
+        memcpy(new->handle,
+               p_child_handle->data.handle.f_handle,
+               hdl_size);
+
+
+	new->name =  malloc(name_len+1);
+	memset(new->name, 0, name_len+1);
+        if (new->name == NULL) {
+           LogEvent(COMPONENT_FSAL,"ACH: ERROR malloc name failed");
+           raise (SIGABRT);
+        }
+	memcpy(new->name, p_filename->name, name_len);
+
+	new->hdl_size = hdl_size;
+
+
+	//insert in tree
+	mutator = malloc(sizeof(struct rbt_node));
+        if (mutator == NULL) {
+           LogEvent(COMPONENT_FSAL,"ACH: ERROR malloc mutator failed");
+           raise (SIGABRT);
+        }
+        RBT_OPAQ(mutator) = new;
+        RBT_VALUE(mutator) = (uint64_t)new;
+        RBT_INSERT(&rbt, mutator, locator);
+
+out:
+	pthread_mutex_unlock(&cache_handle_mutex);
+           
+}
+
 
 /**
  * FSAL_lookup :
@@ -93,6 +297,7 @@ fsal_status_t GPFSFSAL_lookup(fsal_handle_t * p_parent_directory_handle,    /* I
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_lookup);
 
   /* get information about root */
+  LogEvent(COMPONENT_FSAL,"ACH: Lookup for %s\n", p_filename->name);
   if(!p_parent_directory_handle)
     {
       gpfsfsal_handle_t *root_handle = &((gpfsfsal_op_context_t *)p_context)->export_context->mount_root_handle;
@@ -103,6 +308,14 @@ fsal_status_t GPFSFSAL_lookup(fsal_handle_t * p_parent_directory_handle,    /* I
              sizeof(root_handle->data.handle.handle_size));
       p_object_handle->data.handle.handle_size = root_handle->data.handle.handle_size;
       p_object_handle->data.handle.handle_key_size = root_handle->data.handle.handle_key_size;
+
+
+      log_handle("GPFSFSAL_lookup: root handle:",
+                 p_object_handle->data.handle.f_handle,
+                 sizeof(p_object_handle->data.handle.f_handle));
+
+       cache_handle(NULL, p_object_handle, p_filename);
+
 
       /* get attributes, if asked */
       if(p_object_attributes)
@@ -117,6 +330,10 @@ fsal_status_t GPFSFSAL_lookup(fsal_handle_t * p_parent_directory_handle,    /* I
       /* Done */
       Return(ERR_FSAL_NO_ERROR, 0, INDEX_FSAL_lookup);
     }
+
+  log_handle("GPFSFSAL_lookup: parent handle:",
+                 p_parent_directory_handle->data.handle.f_handle,
+                 sizeof(p_parent_directory_handle->data.handle.f_handle));
 
   /* retrieve directory attributes */
   TakeTokenFSCall();
@@ -169,7 +386,23 @@ fsal_status_t GPFSFSAL_lookup(fsal_handle_t * p_parent_directory_handle,    /* I
   /* This might be a race, but it's the best we can currently do */
   status = fsal_internal_get_handle_at(parentfd, p_filename, object_handle,
       p_context);
+
+  log_handle("GPFSFSAL_lookup handle:",
+             object_handle->data.handle.f_handle,
+             sizeof(object_handle->data.handle.f_handle));
+  cache_handle(p_parent_directory_handle, object_handle, p_filename);
+
   close(parentfd);
+
+  if (memcmp(p_parent_directory_handle->data.handle.f_handle,
+             object_handle->data.handle.f_handle,
+             sizeof(object_handle->data.handle.f_handle)) == 0) {
+      LogEvent(COMPONENT_FSAL,"ACH: ERROR Duplicate parent and child handles detected.  Raising abort");
+      log_handle("parent:", p_parent_directory_handle->data.handle.f_handle, sizeof(p_parent_directory_handle->data.handle.f_handle));
+      log_handle("child:", object_handle->data.handle.f_handle, sizeof(object_handle->data.handle.f_handle));
+      LogEvent(COMPONENT_FSAL,"ACH: p_filename:%s", p_filename->name); 
+      raise (SIGABRT);
+  }
 
   if(FSAL_IS_ERROR(status))
     ReturnStatus(status, INDEX_FSAL_lookup);

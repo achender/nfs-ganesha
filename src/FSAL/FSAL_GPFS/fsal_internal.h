@@ -339,6 +339,7 @@ fsal_status_t GPFSFSAL_dynamic_fsinfo(fsal_handle_t * p_filehandle,   /* IN */
 
 fsal_status_t GPFSFSAL_Init(fsal_parameter_t * init_info /* IN */ );
 
+void initHandleCache();
 fsal_status_t GPFSFSAL_lookup(fsal_handle_t * p_parent_directory_handle,      /* IN */
                              fsal_name_t * p_filename,  /* IN */
                              fsal_op_context_t * p_context,  /* IN */

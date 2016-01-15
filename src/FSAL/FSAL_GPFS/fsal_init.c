@@ -72,6 +72,8 @@ fsal_status_t GPFSFSAL_Init(fsal_parameter_t * init_info    /* IN */
   if(!init_info)
     Return(ERR_FSAL_FAULT, 0, INDEX_FSAL_Init);
 
+   initHandleCache();
+
   /* proceeds FSAL internal initialization */
   status = fsal_internal_init_global(&(init_info->fsal_info),
                                      &(init_info->fs_common_info),

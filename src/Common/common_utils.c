@@ -184,7 +184,7 @@ int snprintmem(char *target, int tgt_size, caddr_t source, int mem_size)
 }
 
 
-void log_handle(char* desc, char *handle, int handle_len){
+void log_handle(char* desc, unsigned char *handle, int handle_len){
    char str_hdl[handle_len*2+1];
    int i;
 

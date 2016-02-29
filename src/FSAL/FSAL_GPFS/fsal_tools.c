@@ -217,9 +217,14 @@ fsal_status_t GPFSFSAL_DigestHandle(fsal_export_context_t *exp_context,   /* IN 
   gpfsfsal_handle_t * p_in_fsal_handle = (gpfsfsal_handle_t *)in_fsal_handle;
   size_t fh_size;
 
+  LogEvent(COMPONENT_NFS_READDIR,"ACH: Enter function");
+  log_handle("p_in_fsal_handle:", p_in_fsal_handle->data.handle.f_handle, sizeof(p_in_fsal_handle->data.handle.f_handle));
+
   /* sanity checks */
-  if(!p_in_fsal_handle || !fh_desc || !p_expcontext)
+  if(!p_in_fsal_handle || !fh_desc || !p_expcontext) {
+    LogEvent(COMPONENT_NFS_READDIR,"ACH: sanity  failed: return ERR_FSAL_FAULT");
     ReturnCode(ERR_FSAL_FAULT, 0);
+  }
 
   switch (output_type)
     {
@@ -228,10 +233,12 @@ fsal_status_t GPFSFSAL_DigestHandle(fsal_export_context_t *exp_context,   /* IN 
     case FSAL_DIGEST_NFSV2:
 
       /* GPFS FSAL can no longer support NFS v2 */
+      LogEvent(COMPONENT_NFS_READDIR,"ACH: nvfv2 not supported.  Return ERR_FSAL_NOTSUPP");
       ReturnCode(ERR_FSAL_NOTSUPP, 0);
 
     case FSAL_DIGEST_NFSV3:
     case FSAL_DIGEST_NFSV4:
+      LogEvent(COMPONENT_NFS_READDIR,"ACH: nfs v3 or v4");
       fh_size = gpfs_sizeof_handle((struct gpfs_file_handle *)in_fsal_handle);
       if(fh_desc->len < fh_size)
         {
@@ -248,24 +255,31 @@ fsal_status_t GPFSFSAL_DigestHandle(fsal_export_context_t *exp_context,   /* IN 
     case FSAL_DIGEST_FILEID2:
 
       /* GPFS FSAL can no longer support NFS v2 */
+      LogEvent(COMPONENT_NFS_READDIR,"ACH: fileidv2 not sup.  returning ERR_FSAL_NOTSUPP");
       ReturnCode(ERR_FSAL_NOTSUPP, 0);
 
       /* FileId digest for NFSv3 */
     case FSAL_DIGEST_FILEID3:
 
+      LogEvent(COMPONENT_NFS_READDIR,"ACH: fileid3");
       /* sanity check about output size */
       /* If the handle_size is the full OPENHANDLE_HANDLE_LEN then we assume it's a new style GPFS handle */
-      if (fh_desc->len == 8)
+      if (fh_desc->len == 8) {
+        LogEvent(COMPONENT_NFS_READDIR,"ACH: memset buff");
 	memset(fh_desc->start, 0, sizeof(uint64_t));
-      if(p_in_fsal_handle->data.handle.handle_size < OPENHANDLE_HANDLE_LEN)
+      }
+      if(p_in_fsal_handle->data.handle.handle_size < OPENHANDLE_HANDLE_LEN) { 
+        LogEvent(COMPONENT_NFS_READDIR,"ACH: less than handle len");
         memcpy(fh_desc->start, p_in_fsal_handle->data.handle.f_handle, sizeof(uint32_t));
-      else
+      } else {
+        LogEvent(COMPONENT_NFS_READDIR,"ACH: add offset");
         memcpy(fh_desc->start, p_in_fsal_handle->data.handle.f_handle + OPENHANDLE_OFFSET_OF_FILEID, sizeof(uint64_t));
+      }
       break;
 
       /* FileId digest for NFSv4 */
     case FSAL_DIGEST_FILEID4:
-
+      LogEvent(COMPONENT_NFS_READDIR,"ACH: fileid4");
       if(p_in_fsal_handle->data.handle.handle_size < OPENHANDLE_HANDLE_LEN)
         memcpy(fh_desc->start, p_in_fsal_handle->data.handle.f_handle, sizeof(uint32_t));
       else
@@ -273,9 +287,13 @@ fsal_status_t GPFSFSAL_DigestHandle(fsal_export_context_t *exp_context,   /* IN 
       break;
 
     default:
+      LogEvent(COMPONENT_NFS_READDIR,"ACH: bad case. return SERVERFAULT");
       ReturnCode(ERR_FSAL_SERVERFAULT, 0);
     }
 
+  log_handle("digested handle:", fh_desc->start, fh_desc->len);
+
+  LogEvent(COMPONENT_NFS_READDIR,"ACH: normal exit");
   ReturnCode(ERR_FSAL_NO_ERROR, 0);
 
 }

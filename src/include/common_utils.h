@@ -129,7 +129,7 @@ static inline int strmaxcat(char * dest, char * src, size_t dest_size)
   return 0;
 }
 
-void log_handle(char* desc, char *handle, int handle_len);
+void log_handle(char* desc, unsigned char *handle, int handle_len);
 
 static inline void logbacktrace(){
     int MAX_STACK_DEPTH = 50;

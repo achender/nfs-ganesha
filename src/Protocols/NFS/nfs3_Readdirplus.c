@@ -65,6 +65,9 @@
 #include "nfs_file_handle.h"
 #include "nfs_proto_tools.h"
 #include <assert.h>
+#include <signal.h>
+
+
 
 static bool_t nfs3_readdirplus_callback(void* opaque,
                                         char *name,
@@ -307,7 +310,7 @@ nfs3_Readdirplus(nfs_arg_t *arg,
                     = nfs3_Errno(cache_status_gethandle);
                cache_inode_lru_unref(parent_dir_entry, 0);
                rc = NFS_REQ_OK;
-               LogEvent(COMPONENT_NFS_READDIR,"ACH: cache_inode_getattr failed");
+               LogEvent(COMPONENT_NFS_READDIR,"ACH: parent cache_inode_getattr failed");
                goto out;
           }
           if (!(nfs3_readdirplus_callback(&cb_opaque,
@@ -319,10 +322,41 @@ nfs3_Readdirplus(nfs_arg_t *arg,
                res->res_readdirplus3.status = cb_opaque.error;
                cache_inode_lru_unref(parent_dir_entry, 0);
                rc = NFS_REQ_OK;
-               LogEvent(COMPONENT_NFS_READDIR,"ACH: readdirplu callback for .. failed");
+               LogEvent(COMPONENT_NFS_READDIR,"ACH:parent  readdirplus callback for .. failed");
                goto out;
           }
+          log_handle(".. handle before unref:", parent_dir_entry->handle.data.handle.f_handle, sizeof(parent_dir_entry->handle.data.handle.f_handle));
           cache_inode_lru_unref(parent_dir_entry, 0);
+
+	unsigned char rootHdl[] = {0x35,0x81,0x01,0x00,0x00,0x00,0x00,0x00,
+                                   0x02,0x00,0x01,0x00,0x03,0x00,0x00,0x00,
+                                   0x00,0x00,0x00,0x00,0x01,0x00,0x00,0x00,
+                                   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+                                   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+        void *rh = &rootHdl[0];
+
+        int isRootHdl = memcmp(rh,dir_entry->handle.data.handle.f_handle,sizeof(dir_entry->handle.data.handle.f_handle));
+
+        log_handle(".. handle:", parent_dir_entry->handle.data.handle.f_handle, sizeof(parent_dir_entry->handle.data.handle.f_handle));
+        log_handle(" . handle:", dir_entry->handle.data.handle.f_handle, sizeof(dir_entry->handle.data.handle.f_handle));
+        log_handle("  rootHdl:", rh, sizeof(rootHdl));
+        
+
+        LogEvent(COMPONENT_NFS_READDIR,"ACH: dir:%lu parent:%lu root:%lu isRoot:%d", 
+                 sizeof(dir_entry->handle.data.handle.f_handle), 
+                 sizeof(parent_dir_entry->handle.data.handle.f_handle), 
+                 sizeof(rootHdl), 
+                 isRootHdl);
+
+        if (    isRootHdl != 0 &&
+                (sizeof(dir_entry->handle.data.handle.f_handle) == sizeof(parent_dir_entry->handle.data.handle.f_handle))
+                &&
+                (memcmp(parent_dir_entry->handle.data.handle.f_handle, dir_entry->handle.data.handle.f_handle, sizeof(dir_entry->handle.data.handle.f_handle)) == 0)
+           ) {
+           LogEvent(COMPONENT_FSAL,"ACH: ERROR Duplicate parent and child handles detected.  Raising abort");
+           //LogEvent(COMPONENT_FSAL,"ACH: p_filename:%s", p_filename->name); 
+           raise (SIGABRT);
+       }
      }
 
      /* Call readdir */
@@ -502,6 +536,11 @@ nfs3_readdirplus_callback(void* opaque,
                return FALSE;
           }
 
+          log_handle("nfs3_readdirplus_callback: fsal handle:",
+                entry->handle.data.handle.f_handle, 
+		sizeof(entry->handle.data.handle.f_handle)
+                );
+
           if (nfs3_FSALToFhandle(&ep3->name_handle.post_op_fh3_u.handle,
                                  &entry->handle,
                                  tracker->export) == 0) {
@@ -512,7 +551,7 @@ nfs3_readdirplus_callback(void* opaque,
                return FALSE;
           }
 
-          log_handle("nfs3_readdirplus_callback: handle:",
+          log_handle("nfs3_readdirplus_callback: f3 handle:",
                 ep3->name_handle.post_op_fh3_u.handle.data.data_val,
                 ep3->name_handle.post_op_fh3_u.handle.data.data_len);
 

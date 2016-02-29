@@ -118,22 +118,28 @@ cache_entry_t *cache_inode_weakref_get(gweakref_t *ref,
                                        uint32_t flags)
 {
     pthread_rwlock_t *lock = NULL;
+    LogEvent(COMPONENT_CACHE_INODE,"ACH: enter function");
 
-    if (!ref)
+    if (!ref) {
+      LogEvent(COMPONENT_CACHE_INODE,"ACH: bad ref. return null");
       return NULL;
+    }
 
     cache_entry_t *entry =
         (cache_entry_t *) gweakref_lookupex(cache_inode_wt, ref, &lock);
 
     if (entry) {
+        LogEvent(COMPONENT_CACHE_INODE,"ACH: gweakref failed.  try lru");
         if (cache_inode_lru_ref(entry, flags)
             != CACHE_INODE_SUCCESS) {
             PTHREAD_RWLOCK_UNLOCK(lock);
+            LogEvent(COMPONENT_CACHE_INODE,"ACH: failed to get entry from lru. return null");
             return NULL;
         }
         PTHREAD_RWLOCK_UNLOCK(lock);
     }
 
+    LogEvent(COMPONENT_CACHE_INODE,"ACH: normal exit");
     return (entry);
 }
 

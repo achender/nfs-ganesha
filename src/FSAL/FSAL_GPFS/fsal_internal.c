@@ -591,6 +591,8 @@ fsal_status_t fsal_internal_get_handle_at(int dfd,      /* IN */
     ReturnCode(posix2fsal_error(errno), errno);
   }
 
+  LogEvent(COMPONENT_FSAL,"ACH: lookup  fsid: %ud %ud", p_handle->data.handle.handle_fsid[0], p_handle->data.handle.handle_fsid[1]);
+
   log_handle("fsal_internal_get_handle_at handle:", 
              p_handle->data.handle.f_handle, 
              sizeof(p_handle->data.handle.f_handle));

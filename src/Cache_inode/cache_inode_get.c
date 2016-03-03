@@ -99,6 +99,8 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
      fsal_handle_t *file_handle;
      struct hash_latch latch;
 
+     log_handle("cache_inode_get enter function: fsdata.fh_desc.start:", fsdata->fh_desc.start, fsdata->fh_desc.len);
+
      /* Set the return default to CACHE_INODE_SUCCESS */
      *status = CACHE_INODE_SUCCESS;
 
@@ -110,6 +112,9 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
      hrc = HashTable_GetLatch(fh_to_cache_entry_ht, &key, &value,
                               FALSE,
                               &latch);
+
+     log_handle("cache_inode_get fsdata.fh_desc.start after get latch:", fsdata->fh_desc.start, fsdata->fh_desc.len);
+     log_handle("cache_inode_get: hrc success value.pdata:", value.pdata, value.len);
 
      if ((hrc != HASHTABLE_SUCCESS) &&
          (hrc != HASHTABLE_ERROR_NO_SUCH_KEY)) {
@@ -125,6 +130,7 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
      if (hrc == HASHTABLE_SUCCESS) {
           /* Entry exists in the cache and was found */
           entry = value.pdata;
+          log_handle("cache_inode_get: hrc success entry:", entry->handle.data.handle.f_handle, sizeof(entry->handle.data.handle.f_handle));
           /* take an extra reference within the critical section */
           if (cache_inode_lru_ref(entry, LRU_REQ_INITIAL) !=
               CACHE_INODE_SUCCESS) {
@@ -135,6 +141,8 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
                     /* Take a quick exit so we don't invert lock
                        ordering. */
                     HashTable_ReleaseLatched(fh_to_cache_entry_ht, &latch);
+                    log_handle("cache_inode_get fsdata.fh_desc.start latch release:", fsdata->fh_desc.start, fsdata->fh_desc.len);
+                    log_handle("cache_inode_get: found return entry:", entry->handle.data.handle.f_handle, sizeof(entry->handle.data.handle.f_handle));
                     return entry;
                }
           }
@@ -148,6 +156,9 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
           if (entry == NULL) {
                *status = CACHE_INODE_NOT_FOUND;
           }
+          log_handle("cache_inode_get fsdata.fh_desc.start release:", fsdata->fh_desc.start, fsdata->fh_desc.len);
+          log_handle("cache_inode_get: no context return entry:", entry->handle.data.handle.f_handle, sizeof(entry->handle.data.handle.f_handle));
+
           return entry;
      }
 
@@ -172,6 +183,7 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
           if (!FSAL_TEST_MASK(fsal_attributes.supported_attributes,
                               FSAL_ATTR_TYPE)) {
                *status = CACHE_INODE_FSAL_ERROR;
+               LogDebug(COMPONENT_CACHE_INODE,"ACH: type must be set in attrs.  return null");
                return NULL;
           }
 
@@ -186,6 +198,7 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
 
                if (FSAL_IS_ERROR(fsal_status)) {
                     *status = cache_inode_error_convert(fsal_status);
+                    LogDebug(COMPONENT_CACHE_INODE,"ACH: failed to read link. return null");
                     return NULL;
                }
           }
@@ -195,6 +208,7 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
                                        type,
                                        &create_arg,
                                        status)) == NULL) {
+               LogDebug(COMPONENT_CACHE_INODE,"ACH: new entry failed, return null");
                return NULL;
           }
 
@@ -247,11 +261,17 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
      }
      PTHREAD_RWLOCK_UNLOCK(&entry->attr_lock);
 
+     log_handle("cache_inode_get fsdata.fh_desc.start:", fsdata->fh_desc.start, fsdata->fh_desc.len);
+     log_handle("cache_inode_get: unlocked return entry:", entry->handle.data.handle.f_handle, sizeof(entry->handle.data.handle.f_handle));
+
      return entry;
 
  out_put:
      cache_inode_put(entry);
      entry = NULL;
+     log_handle("cache_inode_get fsdata.fh_desc.start:", fsdata->fh_desc.start, fsdata->fh_desc.len);
+     log_handle("cache_inode_get: normal exit return entry:", entry->handle.data.handle.f_handle, sizeof(entry->handle.data.handle.f_handle));
+
      return entry;
 } /* cache_inode_get */
 

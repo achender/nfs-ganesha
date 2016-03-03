@@ -140,6 +140,7 @@ fsal_status_t GPFSFSAL_lookup(fsal_handle_t * p_parent_directory_handle,    /* I
       Return(ERR_FSAL_NO_ERROR, 0, INDEX_FSAL_lookup);
     }
 
+  LogEvent(COMPONENT_FSAL,"ACH: parent handle fsid: %ud %ud", p_parent_directory_handle->data.handle.handle_fsid[0], p_parent_directory_handle->data.handle.handle_fsid[1]);
   log_handle("GPFSFSAL_lookup: parent handle:",
                  p_parent_directory_handle->data.handle.f_handle,
                  sizeof(p_parent_directory_handle->data.handle.f_handle));
@@ -199,6 +200,8 @@ fsal_status_t GPFSFSAL_lookup(fsal_handle_t * p_parent_directory_handle,    /* I
   /* This might be a race, but it's the best we can currently do */
   status = fsal_internal_get_handle_at(parentfd, p_filename, object_handle,
       p_context);
+
+  LogEvent(COMPONENT_FSAL,"ACH: lookup  fsid: %ud %ud", object_handle->data.handle.handle_fsid[0], object_handle->data.handle.handle_fsid[1]);
 
   log_handle("GPFSFSAL_lookup handle:",
              object_handle->data.handle.f_handle,

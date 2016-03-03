@@ -299,6 +299,8 @@ nfs3_Readdirplus(nfs_arg_t *arg,
                goto out;
           }
 
+          log_handle(".. handle before get attrs:", parent_dir_entry->handle.data.handle.f_handle, sizeof(parent_dir_entry->handle.data.handle.f_handle));
+
           parent_dir_attr.asked_attributes = FSAL_ATTRS_V3;
 
           if ((cache_inode_getattr(parent_dir_entry,
@@ -313,6 +315,7 @@ nfs3_Readdirplus(nfs_arg_t *arg,
                LogEvent(COMPONENT_NFS_READDIR,"ACH: parent cache_inode_getattr failed");
                goto out;
           }
+          log_handle(".. handle before callback:", parent_dir_entry->handle.data.handle.f_handle, sizeof(parent_dir_entry->handle.data.handle.f_handle));
           if (!(nfs3_readdirplus_callback(&cb_opaque,
                                           "..",
                                           parent_dir_entry,
@@ -336,6 +339,9 @@ nfs3_Readdirplus(nfs_arg_t *arg,
         void *rh = &rootHdl[0];
 
         int isRootHdl = memcmp(rh,dir_entry->handle.data.handle.f_handle,sizeof(dir_entry->handle.data.handle.f_handle));
+
+        LogEvent(COMPONENT_FSAL,"ACH: ..  fsid: %ud %ud", parent_dir_entry->handle.data.handle.handle_fsid[0], parent_dir_entry->handle.data.handle.handle_fsid[1]);
+        LogEvent(COMPONENT_FSAL,"ACH: .   fsid: %ud %ud", dir_entry->handle.data.handle.handle_fsid[0], dir_entry->handle.data.handle.handle_fsid[1]);
 
         log_handle(".. handle:", parent_dir_entry->handle.data.handle.f_handle, sizeof(parent_dir_entry->handle.data.handle.f_handle));
         log_handle(" . handle:", dir_entry->handle.data.handle.f_handle, sizeof(dir_entry->handle.data.handle.f_handle));

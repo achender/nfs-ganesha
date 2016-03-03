@@ -153,12 +153,18 @@ cache_inode_lookupp_impl(cache_entry_t *entry,
                return NULL;
           }
 
+          log_handle("cache_inode_lookupp_impl: parent_handle after lookup:", parent_handle.data.handle.f_handle, sizeof(parent_handle.data.handle.f_handle));
+
           /* Call cache_inode_get to populate the cache with the parent entry */
           fsdata.fh_desc.start = (caddr_t) &parent_handle;
           fsdata.fh_desc.len = 0;
           FSAL_ExpandHandle(context->export_context,
                             FSAL_DIGEST_SIZEOF,
                             &fsdata.fh_desc);
+
+          log_handle("cache_inode_lookupp_impl: parent_handle after expand:", parent_handle.data.handle.f_handle, sizeof(parent_handle.data.handle.f_handle));
+          LogEvent(COMPONENT_CACHE_INODE,"ACH: fsdata.fh_desc.len: %ld", fsdata.fh_desc.len);
+          log_handle("cache_inode_lookupp_impl: fsdata.fh_desc.start:", fsdata.fh_desc.start, fsdata.fh_desc.len);
 
 
           /* Call cache_inode_get to populate the cache with the
@@ -172,9 +178,15 @@ cache_inode_lookupp_impl(cache_entry_t *entry,
                return NULL;
           }
 
+          log_handle("cache_inode_lookupp_impl: parent_handle after caching:", parent_handle.data.handle.f_handle, sizeof(parent_handle.data.handle.f_handle));
+          log_handle("cache_inode_lookupp_impl: parent after caching:", parent->handle.data.handle.f_handle, sizeof(parent->handle.data.handle.f_handle));
+
+
           /* Link in a weak reference */
           entry->object.dir.parent = parent->weakref;
      }
+
+     log_handle("cache_inode_lookupp_impl: parent:", parent->handle.data.handle.f_handle, sizeof(parent->handle.data.handle.f_handle));
 
      LogEvent(COMPONENT_CACHE_INODE,"ACH: normal exit.  status: %s", msg_fsal_err(fsal_status.minor));
      return parent;

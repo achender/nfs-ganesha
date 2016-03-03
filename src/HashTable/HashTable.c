@@ -518,11 +518,20 @@ HashTable_GetLatch(struct hash_table *ht,
 
      if (rc == HASHTABLE_SUCCESS) {
           /* Key was found */
+          if(isDebug(COMPONENT_HASHTABLE) &&  isFullDebug(ht->parameter.ht_log_component)) LogFullDebug(ht->parameter.ht_log_component, "ACH: Key was found");
+
           data = RBT_OPAQ(locator);
           if (val) {
                val->pdata = data->buffval.pdata;
                val->len = data->buffval.len;
+
+               if(isDebug(COMPONENT_HASHTABLE) &&  isFullDebug(ht->parameter.ht_log_component))
+			log_handle("HashTable_GetLatch: val->pdata:", val->pdata, val->len);
           }
+	  else {
+		if(isDebug(COMPONENT_HASHTABLE) &&  isFullDebug(ht->parameter.ht_log_component))
+                        LogFullDebug(ht->parameter.ht_log_component, "ACH: no val");
+	  }
 
           if(isDebug(COMPONENT_HASHTABLE) &&
              isFullDebug(ht->parameter.ht_log_component)) {

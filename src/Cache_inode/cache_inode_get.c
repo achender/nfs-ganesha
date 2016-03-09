@@ -114,7 +114,6 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
                               &latch);
 
      log_handle("cache_inode_get fsdata.fh_desc.start after get latch:", fsdata->fh_desc.start, fsdata->fh_desc.len);
-     log_handle("cache_inode_get: hrc success value.pdata:", value.pdata, value.len);
 
      if ((hrc != HASHTABLE_SUCCESS) &&
          (hrc != HASHTABLE_ERROR_NO_SUCH_KEY)) {
@@ -130,6 +129,8 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
      if (hrc == HASHTABLE_SUCCESS) {
           /* Entry exists in the cache and was found */
           entry = value.pdata;
+          log_handle("cache_inode_get: hrc success value.pdata:", value.pdata, value.len);
+
           log_handle("cache_inode_get: hrc success entry:", entry->handle.data.handle.f_handle, sizeof(entry->handle.data.handle.f_handle));
           /* take an extra reference within the critical section */
           if (cache_inode_lru_ref(entry, LRU_REQ_INITIAL) !=

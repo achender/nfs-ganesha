@@ -847,6 +847,8 @@ int nfs3_Is_Fh_Invalid(nfs_fh3 *pfh3)
 {
   file_handle_v3_t *pfile_handle;
 
+  logbacktrace();
+
   BUILD_BUG_ON(sizeof(struct alloc_file_handle_v3) != NFS3_FHSIZE);
 
   if(pfh3 == NULL)

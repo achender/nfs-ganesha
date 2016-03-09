@@ -125,6 +125,7 @@ nfs3_Readdirplus(nfs_arg_t *arg,
                  nfs_res_t *res)
 {
      cache_entry_t *dir_entry = NULL;
+     cache_entry_t *dummy_entry=NULL;
      fsal_attrib_list_t dir_attr;
      uint64_t begin_cookie = 0;
      uint64_t cache_inode_cookie = 0;
@@ -340,13 +341,43 @@ nfs3_Readdirplus(nfs_arg_t *arg,
 
         int isRootHdl = memcmp(rh,dir_entry->handle.data.handle.f_handle,sizeof(dir_entry->handle.data.handle.f_handle));
 
-        LogEvent(COMPONENT_FSAL,"ACH: ..  fsid: %ud %ud", parent_dir_entry->handle.data.handle.handle_fsid[0], parent_dir_entry->handle.data.handle.handle_fsid[1]);
-        LogEvent(COMPONENT_FSAL,"ACH: .   fsid: %ud %ud", dir_entry->handle.data.handle.handle_fsid[0], dir_entry->handle.data.handle.handle_fsid[1]);
+   log_handle("ACH: .. handle:", (unsigned char *)(&parent_dir_entry->handle.data.handle), sizeof(parent_dir_entry->handle.data.handle));
+   LogEvent(COMPONENT_FSAL,"struct gpfs_file_handle");
+   LogEvent(COMPONENT_FSAL,"{ ");
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_size: %hu", parent_dir_entry->handle.data.handle.handle_size);
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_type: %hu", parent_dir_entry->handle.data.handle.handle_type);
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_version; %hu\n", parent_dir_entry->handle.data.handle.handle_version);
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_key_size;%hu\n", parent_dir_entry->handle.data.handle.handle_key_size);
+   LogEvent(COMPONENT_FSAL,"   u_int32_t handle_fsid[2]: {%ud %ud}\n", parent_dir_entry->handle.data.handle.handle_fsid[0], parent_dir_entry->handle.data.handle.handle_fsid[1]);
+   LogEvent(COMPONENT_FSAL,"   /* file identifier */");
+   log_handle("   unsigned char f_handle[OPENHANDLE_HANDLE_LEN]: ",
+             parent_dir_entry->handle.data.handle.f_handle,
+             sizeof(parent_dir_entry->handle.data.handle.f_handle));
+   LogEvent(COMPONENT_FSAL,"};");
 
-        log_handle(".. handle:", parent_dir_entry->handle.data.handle.f_handle, sizeof(parent_dir_entry->handle.data.handle.f_handle));
-        log_handle(" . handle:", dir_entry->handle.data.handle.f_handle, sizeof(dir_entry->handle.data.handle.f_handle));
+
+   log_handle("ACH: . handle:", (unsigned char *)(&dir_entry->handle.data.handle), sizeof(dir_entry->handle.data.handle));
+   LogEvent(COMPONENT_FSAL,"struct gpfs_file_handle");
+   LogEvent(COMPONENT_FSAL,"{ ");
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_size: %hu", dir_entry->handle.data.handle.handle_size);
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_type: %hu", dir_entry->handle.data.handle.handle_type);
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_version; %hu\n", dir_entry->handle.data.handle.handle_version);
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_key_size;%hu\n", dir_entry->handle.data.handle.handle_key_size);
+   LogEvent(COMPONENT_FSAL,"   u_int32_t handle_fsid[2]: {%ud %ud}\n", dir_entry->handle.data.handle.handle_fsid[0], dir_entry->handle.data.handle.handle_fsid[1]);
+   LogEvent(COMPONENT_FSAL,"   /* file identifier */");
+   log_handle("   unsigned char f_handle[OPENHANDLE_HANDLE_LEN]: ",
+             dir_entry->handle.data.handle.f_handle,
+             sizeof(dir_entry->handle.data.handle.f_handle));
+   LogEvent(COMPONENT_FSAL,"};");
+
+
+        log_handle(".. fhandle:", parent_dir_entry->handle.data.handle.f_handle, sizeof(parent_dir_entry->handle.data.handle.f_handle));
+        log_handle(" . fhandle:", dir_entry->handle.data.handle.f_handle, sizeof(dir_entry->handle.data.handle.f_handle));
         log_handle("  rootHdl:", rh, sizeof(rootHdl));
         
+
+        dummy_entry = (cache_entry_t *)(0x5);
+        dummy_entry = dir_entry; //this silly code put here to stop optimizing of dir_entry
 
         LogEvent(COMPONENT_NFS_READDIR,"ACH: dir:%lu parent:%lu root:%lu isRoot:%d", 
                  sizeof(dir_entry->handle.data.handle.f_handle), 

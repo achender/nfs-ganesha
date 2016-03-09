@@ -591,10 +591,23 @@ fsal_status_t fsal_internal_get_handle_at(int dfd,      /* IN */
     ReturnCode(posix2fsal_error(errno), errno);
   }
 
-  LogEvent(COMPONENT_FSAL,"ACH: lookup  fsid: %ud %ud", p_handle->data.handle.handle_fsid[0], p_handle->data.handle.handle_fsid[1]);
+   log_handle("ACH: gpfs_ganesha returned:", (unsigned char *)(harg.handle), sizeof(struct gpfs_file_handle));
+   LogEvent(COMPONENT_FSAL,"struct gpfs_file_handle");
+   LogEvent(COMPONENT_FSAL,"{ ");
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_size: %hu", harg.handle->handle_size);
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_type: %hu", harg.handle->handle_type);
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_version; %hu\n", harg.handle->handle_version);
+   LogEvent(COMPONENT_FSAL,"   u_int16_t handle_key_size;%hu\n", harg.handle->handle_key_size);
+   LogEvent(COMPONENT_FSAL,"   u_int32_t handle_fsid[2]: {%u %u}\n", harg.handle->handle_fsid[0], harg.handle->handle_fsid[1]);
+   LogEvent(COMPONENT_FSAL,"   /* file identifier */");
+   log_handle("   unsigned char f_handle[OPENHANDLE_HANDLE_LEN]: ", 
+             harg.handle->f_handle, 
+             sizeof(harg.handle->f_handle));
+   LogEvent(COMPONENT_FSAL,"};");
 
-  log_handle("fsal_internal_get_handle_at handle:", 
-             p_handle->data.handle.f_handle, 
+
+  log_handle("fsal_internal_get_handle_at: p_handle",
+             p_handle->data.handle.f_handle,
              sizeof(p_handle->data.handle.f_handle));
   LogEvent(COMPONENT_FSAL,"ACH: fsal_internal_get_handle_at returns (%s, %s)",
                      label_fsal_err(ERR_FSAL_NO_ERROR), msg_fsal_err(0));

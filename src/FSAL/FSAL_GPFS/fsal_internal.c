@@ -577,6 +577,14 @@ fsal_status_t fsal_internal_get_handle_at(int dfd,      /* IN */
   harg.dfd = dfd;
   harg.flag = 0;
 
+  log_handle("ACH: harg.handle:", (unsigned char *)(harg.handle), sizeof(struct gpfs_file_handle));
+  LogEvent(COMPONENT_FSAL, "ACH harg.handle->handle_size: %hu", harg.handle->handle_size);
+  LogEvent(COMPONENT_FSAL, "ACH harg.handle->handle_version: %hu", harg.handle->handle_version);
+  LogEvent(COMPONENT_FSAL, "ACH harg.handle->handle_key_size: %hu", harg.handle->handle_key_size);
+  LogEvent(COMPONENT_FSAL, "ACH harg.name: %s", p_fsalname->name);
+  LogEvent(COMPONENT_FSAL, "ACH harg.dfd: %d", harg.dfd);
+  LogEvent(COMPONENT_FSAL, "ACH harg.flag: %d", harg.flag);
+
   LogEvent(COMPONENT_FSAL,
                "Lookup handle at for %s",
                p_fsalname->name);

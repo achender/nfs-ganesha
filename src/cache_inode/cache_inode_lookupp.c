@@ -83,9 +83,10 @@ cache_inode_lookupp_impl(cache_entry_t *entry,
 
 	/* Never even think of calling FSAL_lookup on root/.. */
 
+	LogEvent(COMPONENT_CACHE_INODE, "ACH:%s:%d: Enter function",__FILE__,__LINE__);
 	if (entry->type == DIRECTORY) {
 		PTHREAD_RWLOCK_rdlock(&op_ctx->export->lock);
-
+		LogEvent(COMPONENT_CACHE_INODE, "ACH:%s:%d: Entry is a dir",__FILE__,__LINE__);
 		if (entry == op_ctx->export->exp_root_cache_inode) {
 			/* This entry is the root of the current export, so if
 			 * we get this far, return itself. Note that NFS v4
@@ -99,6 +100,8 @@ cache_inode_lookupp_impl(cache_entry_t *entry,
 			PTHREAD_RWLOCK_unlock(&op_ctx->export->lock);
 			status = cache_inode_lru_ref(entry, LRU_FLAG_NONE);
 			*parent = entry;
+			LogEvent(COMPONENT_CACHE_INODE, "ACH:%s:%d: cached entry found.  Returning %d", __FILE__,__LINE__,
+				status);
 			return status;
 		}
 
@@ -112,6 +115,7 @@ cache_inode_lookupp_impl(cache_entry_t *entry,
 	if (!(*parent)) {
 		/* If we didn't find it, drop the read lock, get a write
 		   lock, and got to FSAL. */
+		LogEvent(COMPONENT_CACHE_INODE,"ACH:%s:%d: didn't find the parent.  go to fsal",__FILE__,__LINE__);
 		struct fsal_obj_handle *parent_handle;
 		fsal_status_t fsal_status;
 
@@ -129,23 +133,30 @@ cache_inode_lookupp_impl(cache_entry_t *entry,
 			}
 			status = cache_inode_error_convert(fsal_status);
 			*parent = NULL;
+			LogEvent(COMPONENT_CACHE_INODE, "ACH:%s:%d: Lookup failed.  Returning %d",__FILE__,__LINE__,          
+                                status);
 			return status;
 		}
 
-		LogFullDebug(COMPONENT_CACHE_INODE, "Creating entry");
+		LogEvent(COMPONENT_CACHE_INODE, "Creating entry");
 
 		/* Allocation of a new entry in the cache */
 		status =
 		    cache_inode_new_entry(parent_handle, CACHE_INODE_FLAG_NONE,
 					  parent);
-		if (*parent == NULL)
-			return status;
-
+		if (*parent == NULL) {
+			LogEvent(COMPONENT_CACHE_INODE, "ACH:%s:%d: still didnt find the parent.  Returning %d", __FILE__,__LINE__,
+                                status);
+			return status; 
+		}
 		/* Dup keys */
 		cache_inode_key_dup(&entry->object.dir.parent,
 				    &((*parent)->fh_hk.key));
+	
 	}
 
+	LogEvent(COMPONENT_CACHE_INODE, "ACH:%s:%d: Normal exit.  Returning %d",__FILE__,__LINE__,
+                                status);
 	return status;
 }
 

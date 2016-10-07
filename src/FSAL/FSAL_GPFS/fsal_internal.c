@@ -88,15 +88,25 @@ fsal_status_t fsal_internal_handle2fd(int dirfd,
 {
 	fsal_status_t status;
 
-	if (!phandle || !pfd)
+	if (!phandle || !pfd) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: fsal_internal_handle2fd: failed sanity check.  Returning ERR_FSAL_FAULT", __FILE__,__LINE__);
 		return fsalstat(ERR_FSAL_FAULT, 0);
+	}
+
+        log_handle("fsal_internal_handle2fd:",
+            (char *)(phandle),
+            sizeof(struct gpfs_file_handle));
 
 	status = fsal_internal_handle2fd_at(dirfd, phandle, pfd, oflags,
 					    reopen);
 
-	if (FSAL_IS_ERROR(status))
+	if (FSAL_IS_ERROR(status)) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: fsal_internal_handle2fd_at failed.  Returning %d:%s %d:%s", __FILE__,__LINE__,
+			status.major,strerror(status.major), status.minor,strerror(status.minor));
 		return status;
+	}
 
+	LogEvent(COMPONENT_FSAL, "ACH%s:%d: Normal exit", __FILE__,__LINE__);
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
 
@@ -163,9 +173,12 @@ fsal_status_t fsal_internal_handle2fd_at(int dirfd,
 		struct open_share_arg sarg;
 	} u;
 
-	if (!phandle || !pfd)
-		return fsalstat(ERR_FSAL_FAULT, 0);
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d: enter function", __FILE__,__LINE__);
 
+	if (!phandle || !pfd) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: fsal_internal_handle2fd_at: failed sanity check.  Returning ERR_FSAL_FAULT", __FILE__,__LINE__);
+		return fsalstat(ERR_FSAL_FAULT, 0);
+	}
 	if (reopen) {
 		u.sarg.mountdirfd = dirfd;
 		u.sarg.handle = phandle;
@@ -176,7 +189,7 @@ fsal_status_t fsal_internal_handle2fd_at(int dirfd,
 		u.sarg.share_deny = 0;
 		rc = gpfs_ganesha(OPENHANDLE_REOPEN_BY_FD, &u.sarg);
 		errsv = errno;
-		LogFullDebug(COMPONENT_FSAL,
+		LogEvent(COMPONENT_FSAL,
 			     "OPENHANDLE_REOPEN_BY_FD returned: rc %d", rc);
 	} else {
 		u.oarg.mountdirfd = dirfd;
@@ -185,7 +198,7 @@ fsal_status_t fsal_internal_handle2fd_at(int dirfd,
 
 		rc = gpfs_ganesha(OPENHANDLE_OPEN_BY_HANDLE, &u.oarg);
 		errsv = errno;
-		LogFullDebug(COMPONENT_FSAL,
+		LogEvent(COMPONENT_FSAL,
 			     "OPENHANDLE_OPEN_BY_HANDLE returned: rc %d", rc);
 	}
 
@@ -202,6 +215,11 @@ fsal_status_t fsal_internal_handle2fd_at(int dirfd,
 	if (!reopen)
 		*pfd = rc;
 
+	//log_handle("fsal_internal_handle2fd_at:",
+        //    (char *)(phandle),
+        //    sizeof(struct gpfs_file_handle));
+
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d: Normal exit", __FILE__,__LINE__);
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
 
@@ -225,8 +243,10 @@ fsal_status_t fsal_internal_get_handle(const char *p_fsalpath,	/* IN */
 	struct name_handle_arg harg;
 	int errsv = 0;
 
-	if (!p_handle || !p_fsalpath)
+	if (!p_handle || !p_fsalpath) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d fsal_internal_get_handle: sanity check failed.  Returning ERR_FSAL_FAULT",__FILE__,__LINE__);
 		return fsalstat(ERR_FSAL_FAULT, 0);
+	}
 
 	harg.handle = p_handle;
 	harg.handle->handle_size = gpfs_max_fh_size;
@@ -236,7 +256,7 @@ fsal_status_t fsal_internal_get_handle(const char *p_fsalpath,	/* IN */
 	harg.dfd = AT_FDCWD;
 	harg.flag = 0;
 
-	LogFullDebug(COMPONENT_FSAL, "Lookup handle for %s", p_fsalpath);
+	LogEvent(COMPONENT_FSAL, "Lookup handle for %s", p_fsalpath);
 
 	rc = gpfs_ganesha(OPENHANDLE_NAME_TO_HANDLE, &harg);
 	errsv = errno;
@@ -247,6 +267,10 @@ fsal_status_t fsal_internal_get_handle(const char *p_fsalpath,	/* IN */
 		return fsalstat(posix2fsal_error(errsv), errsv);
 	}
 
+	log_handle("fsal_internal_get_handle:",
+            (char *)(p_handle),
+            sizeof(struct gpfs_file_handle));
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d Normal exit",__FILE__,__LINE__);
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
 
@@ -271,8 +295,10 @@ fsal_status_t fsal_internal_get_handle_at(int dfd, const char *p_fsalname,
 	struct name_handle_arg harg;
 	int errsv = 0;
 
-	if (!p_handle)
+	if (!p_handle) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: fsal_internal_get_handle: sanity check failed.  Returning ERR_FSAL_FAULT", __FILE__, __LINE__);
 		return fsalstat(ERR_FSAL_FAULT, 0);
+	}
 
 	harg.handle = p_handle;
 	harg.handle->handle_size = gpfs_max_fh_size;
@@ -282,7 +308,7 @@ fsal_status_t fsal_internal_get_handle_at(int dfd, const char *p_fsalname,
 	harg.dfd = dfd;
 	harg.flag = 0;
 
-	LogFullDebug(COMPONENT_FSAL, "Lookup handle at for %d %s", dfd,
+	LogEvent(COMPONENT_FSAL, "Lookup handle at for %d %s", dfd,
 		     p_fsalname);
 
 	rc = gpfs_ganesha(OPENHANDLE_NAME_TO_HANDLE, &harg);
@@ -294,6 +320,11 @@ fsal_status_t fsal_internal_get_handle_at(int dfd, const char *p_fsalname,
 		return fsalstat(posix2fsal_error(errsv), errsv);
 	}
 
+	log_handle("fsal_internal_get_handle_at:",
+            (char *)(p_handle),
+            sizeof(struct gpfs_file_handle));
+
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d Normal exit", __FILE__, __LINE__);
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
 
@@ -321,8 +352,10 @@ fsal_status_t fsal_internal_get_fh(int dirfd,	/* IN  */
 	struct get_handle_arg harg;
 	int errsv = 0;
 
-	if (!p_out_fh || !p_dir_fh || !p_fsalname)
+	if (!p_out_fh || !p_dir_fh || !p_fsalname) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: fsal_internal_get_fh: sanity check failed.  returning ERR_FSAL_FAULT", __FILE__, __LINE__);
 		return fsalstat(ERR_FSAL_FAULT, 0);
+	}
 
 	harg.mountdirfd = dirfd;
 	harg.dir_fh = p_dir_fh;
@@ -333,7 +366,10 @@ fsal_status_t fsal_internal_get_fh(int dirfd,	/* IN  */
 	harg.len = strlen(p_fsalname);
 	harg.name = p_fsalname;
 
-	LogFullDebug(COMPONENT_FSAL, "Lookup handle for %s", p_fsalname);
+	LogEvent(COMPONENT_FSAL, "Lookup handle for %s", p_fsalname);
+        log_handle("fsal_internal_get_fh:",
+            (char *)(p_dir_fh),
+            sizeof(struct gpfs_file_handle));
 
 	rc = gpfs_ganesha(OPENHANDLE_GET_HANDLE, &harg);
 	errsv = errno;
@@ -344,6 +380,7 @@ fsal_status_t fsal_internal_get_fh(int dirfd,	/* IN  */
 		return fsalstat(posix2fsal_error(errsv), errsv);
 	}
 
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d: normal exit", __FILE__,__LINE__);
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }
 
@@ -365,8 +402,10 @@ fsal_status_t fsal_internal_fd2handle(int fd,
 	struct name_handle_arg harg;
 	int errsv = 0;
 
-	if (!p_handle)
+	if (!p_handle) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: Sanity check failed.  Returning ERR_FSAL_FAULT", __FILE__,__LINE__);
 		return fsalstat(ERR_FSAL_FAULT, 0);
+	}
 
 	harg.handle = p_handle;
 	harg.handle->handle_size = gpfs_max_fh_size;
@@ -376,7 +415,7 @@ fsal_status_t fsal_internal_fd2handle(int fd,
 	harg.dfd = fd;
 	harg.flag = 0;
 
-	LogFullDebug(COMPONENT_FSAL, "Lookup handle by fd for %d", fd);
+	LogEvent(COMPONENT_FSAL, "Lookup handle by fd for %d", fd);
 
 	rc = gpfs_ganesha(OPENHANDLE_NAME_TO_HANDLE, &harg);
 	errsv = errno;
@@ -386,6 +425,12 @@ fsal_status_t fsal_internal_fd2handle(int fd,
 			LogFatal(COMPONENT_FSAL, "GPFS Returned EUNATCH");
 		return fsalstat(posix2fsal_error(errsv), errsv);
 	}
+
+        log_handle("fsal_internal_fd2handle:",
+            (char *)(p_handle),
+            sizeof(struct gpfs_file_handle));
+
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d: normal exit", __FILE__,__LINE__);
 
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }

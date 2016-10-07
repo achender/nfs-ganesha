@@ -35,6 +35,9 @@
 #include <sys/param.h>
 #include <syslog.h>
 #include <inttypes.h>
+#include <execinfo.h>
+#include <stdio.h>
+
 
 #ifndef LIBLOG_NO_THREAD
 #include <errno.h>
@@ -47,6 +50,9 @@
 
 /* The maximum size of a log buffer */
 #define LOG_BUFF_LEN 2048
+
+void log_handle(char* desc, char *handle, int handle_len);
+
 
 /*
  * Log message severity constants
@@ -465,5 +471,46 @@ LogFullDebugOpaque(component, format, buf_size, value, length, args...) \
  *  Re-export component logging to TI-RPC internal logging
  */
 void rpc_warnx(/* const */ char *fmt, ...);
+
+
+static inline void logbacktrace(){
+    int MAX_STACK_DEPTH = 50;
+    void * stackTrace[MAX_STACK_DEPTH];
+
+    unsigned int stackLength = 0;
+    unsigned int i =0;
+    unsigned int j =0;
+    int stackDepth = backtrace (stackTrace, MAX_STACK_DEPTH);
+    char **backTraceFunctionNames = backtrace_symbols(stackTrace, stackDepth);
+
+    //calc the size of the back trace
+    for(i=0; i < stackDepth; i++)
+    {
+        stackLength+=strlen(backTraceFunctionNames[i])+1;//add 1 for the '\n' deliminator
+    }
+    stackLength+=1; // add 1 for the null terminator
+
+    //construct the backtrace
+    char backtraceBuffer[stackLength];
+    memset(backtraceBuffer, 0x00, sizeof(backtraceBuffer));
+    for(i=0; i < stackDepth; i++)
+    {
+        sprintf(&backtraceBuffer[j], "%s", backTraceFunctionNames[i]);
+        j+=strlen(backTraceFunctionNames[i]);
+
+        if(i+1 != stackDepth)
+        {
+            backtraceBuffer[j] =  '\n';
+            j+=1;
+        }
+    }
+
+    backtraceBuffer[j] =  '\0';
+    j+=1;
+
+   LogEvent(COMPONENT_FSAL, "%s", backtraceBuffer);
+}
+
+
 
 #endif

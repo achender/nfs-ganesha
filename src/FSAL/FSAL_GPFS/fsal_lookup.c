@@ -79,8 +79,13 @@ fsal_status_t GPFSFSAL_lookup(const struct req_op_context *p_context,
 	enum fsid_type fsid_type;
 	struct fsal_fsid__ fsid;
 
-	if (!parent || !p_filename)
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d: enter function", __FILE__,__LINE__);
+	logbacktrace();
+
+	if (!parent || !p_filename) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: Sanity check failed.  Returning ERR_FSAL_FAULT", __FILE__,__LINE__);
 		return fsalstat(ERR_FSAL_FAULT, 0);
+	}
 
 	assert(*new_fs == parent->fs);
 
@@ -93,8 +98,11 @@ fsal_status_t GPFSFSAL_lookup(const struct req_op_context *p_context,
 					    &parent_fd,
 					    O_RDONLY,
 					    0);
-	if (FSAL_IS_ERROR(status))
+	if (FSAL_IS_ERROR(status)) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: fsal_internal_handle2fd_at failed.  Returning %d:%s %d:%s", __FILE__,__LINE__, 
+					status.major,strerror(status.major), status.minor,strerror(status.minor));
 		return status;
+	}
 
 	/* Be careful about junction crossing, symlinks, hardlinks,... */
 	switch (parent->type) {
@@ -105,17 +113,21 @@ fsal_status_t GPFSFSAL_lookup(const struct req_op_context *p_context,
 	case REGULAR_FILE:
 	case SYMBOLIC_LINK:
 		/* not a directory */
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: Not a dir.  returning ERR_FSAL_NOTDIR",__FILE__,__LINE__);
 		close(parent_fd);
 		return fsalstat(ERR_FSAL_NOTDIR, 0);
 
 	default:
 		close(parent_fd);
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: Default Err. returning ERR_FSAL_SERVERFAULT", __FILE__,__LINE__);
 		return fsalstat(ERR_FSAL_SERVERFAULT, 0);
 	}
 
 	status = fsal_internal_get_handle_at(parent_fd, p_filename, fh);
 	if (FSAL_IS_ERROR(status)) {
 		close(parent_fd);
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: fsal_internal_get_handle_at failed.  Returning %d:%s %d:%s", __FILE__,__LINE__,
+					status.major,strerror(status.major), status.minor,strerror(status.minor));
 		return status;
 	}
 
@@ -130,7 +142,7 @@ fsal_status_t GPFSFSAL_lookup(const struct req_op_context *p_context,
 		/* XDEV */
 		*new_fs = lookup_fsid(&fsid, fsid_type);
 		if (*new_fs == NULL) {
-			LogDebug(COMPONENT_FSAL,
+			LogEvent(COMPONENT_FSAL,
 				 "Lookup of %s crosses filesystem boundary to "
 				 "unknown file system "
 				 "fsid=0x%016"PRIx64".0x%016"PRIx64,
@@ -139,7 +151,7 @@ fsal_status_t GPFSFSAL_lookup(const struct req_op_context *p_context,
 		}
 
 		if ((*new_fs)->fsal != parent->fsal) {
-			LogDebug(COMPONENT_FSAL,
+			LogEvent(COMPONENT_FSAL,
 				 "Lookup of %s crosses filesystem boundary to file system %s into FSAL %s",
 				 p_filename, (*new_fs)->path,
 				 (*new_fs)->fsal != NULL
@@ -147,7 +159,7 @@ fsal_status_t GPFSFSAL_lookup(const struct req_op_context *p_context,
 					: "(none)");
 			return fsalstat(ERR_FSAL_XDEV, EXDEV);
 		} else {
-			LogDebug(COMPONENT_FSAL,
+			LogEvent(COMPONENT_FSAL,
 				 "Lookup of %s crosses filesystem boundary to file system %s",
 				 p_filename, (*new_fs)->path);
 		}
@@ -169,5 +181,6 @@ fsal_status_t GPFSFSAL_lookup(const struct req_op_context *p_context,
 	close(parent_fd);
 
 	/* lookup complete ! */
+	LogEvent(COMPONENT_FSAL,"ACH:%s:%d: Normal exit",__FILE__,__LINE__);
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 }

@@ -130,8 +130,10 @@ static fsal_status_t lookup(struct fsal_obj_handle *parent,
 
 	*handle = NULL;		/* poison it first */
 	fs = parent->fs;
-	if (!path)
+	if (!path) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: sanity check failed.  Returning ERR_FSAL_FAULT", __FILE__,__LINE__);
 		return fsalstat(ERR_FSAL_FAULT, 0);
+	}
 	memset(fh, 0, sizeof(struct gpfs_file_handle));
 	fh->handle_size = gpfs_max_fh_size;
 	if (!parent->obj_ops.handle_is(parent, DIRECTORY)) {
@@ -140,8 +142,10 @@ static fsal_status_t lookup(struct fsal_obj_handle *parent,
 		return fsalstat(ERR_FSAL_NOTDIR, 0);
 	}
 
+	LogEvent(COMPONENT_FSAL, "ACH:%s%d: path: %s\n", __FILE__,__LINE__,path);
+
 	if (parent->fsal != parent->fs->fsal) {
-		LogDebug(COMPONENT_FSAL,
+		LogEvent(COMPONENT_FSAL,
 			 "FSAL %s operation for handle belonging to FSAL %s, return EXDEV",
 			 parent->fsal->name, parent->fs->fsal->name);
 		retval = EXDEV;
@@ -156,14 +160,23 @@ static fsal_status_t lookup(struct fsal_obj_handle *parent,
 	hdl = alloc_handle(fh, fs, &attrib, NULL,
 			   op_ctx->fsal_export);
 	if (hdl == NULL) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: failed to get handle", __FILE__,__LINE__);
 		retval = ENOMEM;
 		goto hdlerr;
 	}
+
+        log_handle("lookup:",
+            (char *)(hdl->handle),
+            sizeof(struct gpfs_file_handle));
+
 	*handle = &hdl->obj_handle;
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d: nromal exit", __FILE__,__LINE__);
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 
  hdlerr:
 	fsal_error = posix2fsal_error(retval);
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d:  Returning %d:%s %d:%s", __FILE__,__LINE__,
+		fsal_error,strerror(fsal_error), retval,strerror(retval));
 	return fsalstat(fsal_error, retval);
 }
 
@@ -456,6 +469,9 @@ static fsal_status_t read_dirents(struct fsal_obj_handle *dir_hdl,
 	char buf[BUF_SIZE];
 	struct gpfs_filesystem *gpfs_fs;
 
+	LogEvent(COMPONENT_FSAL,"ACH:%s:%d: Enter function",__FILE__,__LINE__);
+	logbacktrace();
+
 	if (whence != NULL)
 		seekloc = (off_t) *whence;
 
@@ -464,13 +480,22 @@ static fsal_status_t read_dirents(struct fsal_obj_handle *dir_hdl,
 
 	status = fsal_internal_handle2fd_at(gpfs_fs->root_fd, myself->handle,
 					    &dirfd, O_RDONLY | O_DIRECTORY, 0);
-	if (dirfd < 0)
+
+        log_handle("read_dirents handle:",
+            (char *)(myself->handle),
+            sizeof(struct gpfs_file_handle));
+
+	if (dirfd < 0) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: bad dirfd.  Returning %d:%s %d:%s",__FILE__,__LINE__, 
+					status.major,strerror(status.major), status.minor,strerror(status.minor));
 		return status;
+	}
 
 	seekloc = lseek(dirfd, seekloc, SEEK_SET);
 	if (seekloc < 0) {
 		retval = errno;
 		fsal_error = posix2fsal_error(retval);
+		LogEvent(COMPONENT_FSAL,"ACH:%s:%d: lseek failed, goto done",__FILE__,__LINE__);
 		goto done;
 	}
 	cnt = 0;
@@ -479,6 +504,7 @@ static fsal_status_t read_dirents(struct fsal_obj_handle *dir_hdl,
 		if (nread < 0) {
 			retval = errno;
 			fsal_error = posix2fsal_error(retval);
+			LogEvent(COMPONENT_FSAL, "ACH:%s:%d: syscall failed.  goto done",__FILE__,__LINE__);
 			goto done;
 		}
 		if (nread == 0)
@@ -492,6 +518,7 @@ static fsal_status_t read_dirents(struct fsal_obj_handle *dir_hdl,
 			/* callback to cache inode */
 			if (!cb(dentry->d_name, dir_state,
 				(fsal_cookie_t) dentry->d_off)) {
+				LogEvent(COMPONENT_FSAL,"ACH:%s:%d: found entry, goto done",__FILE__,__LINE__);
 				goto done;
 			}
  skip:
@@ -503,6 +530,9 @@ static fsal_status_t read_dirents(struct fsal_obj_handle *dir_hdl,
 	*eof = true;
  done:
 	close(dirfd);
+
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d: Normal exit. Returning %d:%s %d:%s",__FILE__,__LINE__,
+                       fsal_error,strerror(fsal_error),retval,strerror(retval));
 
 	return fsalstat(fsal_error, retval);
 }
@@ -615,13 +645,20 @@ static fsal_status_t handle_digest(const struct fsal_obj_handle *obj_hdl,
 	struct gpfs_file_handle *fh;
 	size_t fh_size;
 
+	LogEvent(COMPONENT_FSAL,"ACH:%s:%d: Enter function", __FILE__,__LINE__);
+
 	/* sanity checks */
-	if (!fh_desc)
+	if (!fh_desc) {
+		LogEvent(COMPONENT_FSAL,"ACH:%s:%d: null fh_desc.  return ERR_FSAL_FAULT", __FILE__,__LINE__);
 		return fsalstat(ERR_FSAL_FAULT, 0);
+	}
 	myself =
 	    container_of(obj_hdl, const struct gpfs_fsal_obj_handle,
 			 obj_handle);
 	fh = myself->handle;
+	log_handle("handle_digest handle:",
+            (char *)(myself->handle),
+            sizeof(struct gpfs_file_handle));
 
 	switch (output_type) {
 	case FSAL_DIGEST_NFSV3:
@@ -631,6 +668,7 @@ static fsal_status_t handle_digest(const struct fsal_obj_handle *obj_hdl,
 		memcpy(fh_desc->addr, fh, fh->handle_size);
 		break;
 	default:
+		LogEvent(COMPONENT_FSAL,"ACH:%s:%d: default exit. return ERR_FSAL_SERVERFAULT", __FILE__,__LINE__);
 		return fsalstat(ERR_FSAL_SERVERFAULT, 0);
 	}
 	fh_desc->len = fh->handle_size;
@@ -806,16 +844,20 @@ fsal_status_t gpfs_lookup_path(struct fsal_export *exp_hdl,
 	}
 
 	fsal_status = fsal_internal_fd2handle(dir_fd, fh);
-	if (FSAL_IS_ERROR(fsal_status))
+	if (FSAL_IS_ERROR(fsal_status)) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: fsal_internal_fd2handle failed",__FILE__,__LINE__);
 		goto fileerr;
+	}
 
 	attributes.mask = exp_hdl->exp_ops.fs_supported_attrs(exp_hdl);
 	fsal_status = fsal_get_xstat_by_handle(dir_fd, fh, &buffxstat,
 					       NULL, false);
-	if (FSAL_IS_ERROR(fsal_status))
+	if (FSAL_IS_ERROR(fsal_status)) {
+		LogEvent(COMPONENT_FSAL, "ACH:%s:%d: fsal_get_xstat_by_handle failed",__FILE__,__LINE__);
 		goto fileerr;
+	}
 	fsal_status = gpfsfsal_xstat_2_fsal_attributes(&buffxstat, &attributes);
-	LogFullDebug(COMPONENT_FSAL,
+	LogEvent(COMPONENT_FSAL,
 		     "fsid=0x%016"PRIx64".0x%016"PRIx64,
 		     attributes.fsid.major,
 		     attributes.fsid.minor);
@@ -855,6 +897,12 @@ fsal_status_t gpfs_lookup_path(struct fsal_export *exp_hdl,
 		goto errout;
 	}
 	*handle = &hdl->obj_handle;
+
+        log_handle("gpfs_lookup_path:",
+            (char *)(hdl),
+            sizeof(struct gpfs_file_handle));
+
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d: normal exit",__FILE__,__LINE__);
 	return fsalstat(ERR_FSAL_NO_ERROR, 0);
 
  fileerr:
@@ -863,6 +911,8 @@ fsal_status_t gpfs_lookup_path(struct fsal_export *exp_hdl,
 
  errout:
 	fsal_error = posix2fsal_error(retval);
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d:  Returning Err: %d:%s %d:%s",__FILE__,__LINE__,
+                fsal_error,strerror(fsal_error), retval,strerror(retval));
 	return fsalstat(fsal_error, retval);
 }
 

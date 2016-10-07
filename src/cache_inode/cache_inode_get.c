@@ -210,12 +210,17 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
 	(void) cih_hash_key(&key, fsdata->export->fsal, &fsdata->fh_desc,
 			    CIH_HASH_KEY_PROTOTYPE);
 
+	log_handle("cache_inode_get enter function: fsdata.fh_desc.start:", fsdata->fh_desc.addr, fsdata->fh_desc.len);
+
 	(void)atomic_inc_uint64_t(&cache_stp->inode_req);
 	/* Do lookup */
 	*entry =
 	    cih_get_by_key_latched(&key, &latch,
 				  CIH_GET_RLOCK | CIH_GET_UNLOCK_ON_MISS,
 				  __func__, __LINE__);
+
+	log_handle("cache_inode_get fsdata.fh_desc.start after get latch:", fsdata->fh_desc.addr, fsdata->fh_desc.len);
+
 	if (*entry) {
 		/* take an extra reference within the critical section */
 		(void) cache_inode_lru_ref(*entry, LRU_REQ_INITIAL);
@@ -225,10 +230,12 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
 			/* Return error instead of entry */
 			cache_inode_put(*entry);
 			*entry = NULL;
+			LogEvent(COMPONENT_CACHE_INODE, "ACH:%s%d check map failed: return malloc error", __FILE__,__LINE__);
 			return CACHE_INODE_MALLOC_ERROR;
 		}
 		(void)atomic_inc_uint64_t(&cache_stp->inode_hit);
 
+		LogEvent(COMPONENT_CACHE_INODE, "ACH:%s%d mapping ok.  return CACHE_INODE_SUCCESS.", __FILE__,__LINE__);
 		return CACHE_INODE_SUCCESS;
 	}
 
@@ -239,22 +246,27 @@ cache_inode_get(cache_inode_fsal_data_t *fsdata,
 					&new_hdl);
 	if (FSAL_IS_ERROR(fsal_status)) {
 		status = cache_inode_error_convert(fsal_status);
-		LogDebug(COMPONENT_CACHE_INODE,
+		LogEvent(COMPONENT_CACHE_INODE,
 			 "could not get create_handle object");
 		*entry = NULL;
 		return status;
 	}
 
-	LogFullDebug(COMPONENT_CACHE_INODE, "Creating entry");
+	LogEvent(COMPONENT_CACHE_INODE, "Creating entry");
 
 	status = cache_inode_new_entry(new_hdl, CACHE_INODE_FLAG_NONE,
 				       entry);
 
-	if (*entry == NULL)
+	log_handle("cache_inode_get fsdata.fh_desc.start:", fsdata->fh_desc.addr, fsdata->fh_desc.len);
+
+	if (*entry == NULL) {
+		LogEvent(COMPONENT_CACHE_INODE, "ACH:%s%d Null entry.  return:%d", __FILE__,__LINE__,status);
 		return status;
+	}
 
 	/* If we have an entry, we succeeded.  Don't propagate any
 	   ENTRY_EXISTS errors upward. */
+	LogEvent(COMPONENT_CACHE_INODE, "ACH:%s%d Nromal exit.  return CACHE_INODE_SUCCESS.  return:%d", __FILE__,__LINE__);
 	return CACHE_INODE_SUCCESS;
 }				/* cache_inode_get */
 

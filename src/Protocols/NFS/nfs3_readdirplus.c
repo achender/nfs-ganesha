@@ -137,7 +137,9 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 		.error = NFS3_OK,
 	};
 
-	if (isDebug(COMPONENT_NFSPROTO) || isDebug(COMPONENT_NFS_READDIR)) {
+	LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d Enter function",__FILE__,__LINE__);
+
+	//if (isEvent(COMPONENT_NFSPROTO) || isEvent(COMPONENT_NFS_READDIR)) {
 		char str[LEN_FH_STR];
 		log_components_t component;
 
@@ -148,13 +150,13 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 		else
 			component = COMPONENT_NFS_READDIR;
 
-		LogDebug(component,
+		LogEvent(component,
 			 "REQUEST PROCESSING: Calling nfs3_readdirplus handle: %s",
 			 str);
-	}
+	//}
 	if (op_ctx->export->options & EXPORT_OPTION_NO_READDIR_PLUS) {
 		res->res_readdirplus3.status = NFS3ERR_NOTSUPP;
-		LogFullDebug(COMPONENT_NFS_READDIR,
+		LogEvent(COMPONENT_NFS_READDIR,
 			     "Request not supported");
 		goto out;
 	}
@@ -178,7 +180,7 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 
 	tracker.total_entries = estimated_num_entries;
 
-	LogFullDebug(COMPONENT_NFS_READDIR,
+	LogEvent(COMPONENT_NFS_READDIR,
 		     "nfs3_readdirplus: dircount=%u " "begin_cookie=%" PRIu64
 		     " " "estimated_num_entries=%lu, mem_left=%zd",
 		     arg->arg_readdirplus3.dircount, begin_cookie,
@@ -202,6 +204,7 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 	if (dir_filetype != DIRECTORY) {
 		res->res_readdirplus3.status = NFS3ERR_NOTDIR;
 		rc = NFS_REQ_OK;
+		LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: file type not a dir",__FILE__,__LINE__);
 		goto out;
 	}
 
@@ -226,6 +229,7 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 			   NFS3_COOKIEVERFSIZE) != 0) {
 			res->res_readdirplus3.status = NFS3ERR_BAD_COOKIE;
 			rc = NFS_REQ_OK;
+			LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: bad cookie",__FILE__,__LINE__);
 			goto out;
 		}
 	}
@@ -244,6 +248,7 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 
 	if (tracker.entries == NULL) {
 		rc = NFS_REQ_DROP;
+		LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: no enteries, drop req",__FILE__,__LINE__);
 		goto out;
 	}
 
@@ -258,17 +263,20 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 
 		if (res->res_readdir3.status != NFS3_OK) {
 			rc = NFS_REQ_OK;
+			LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: readdir_dot_entry failed.  goto out",__FILE__,__LINE__);
 			goto out;
 		}
 	}
 
 	/* Fill in ".." */
 	if (begin_cookie <= 1) {
+		LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: fill in ..",__FILE__,__LINE__);
 		cache_entry_t *parent_dir_entry = NULL;
 		cache_status_gethandle = cache_inode_lookupp(dir_entry,
 							     &parent_dir_entry);
 
 		if (parent_dir_entry == NULL) {
+			LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: parent_dir_entry NULL.  goto out",__FILE__,__LINE__);
 			res->res_readdirplus3.status =
 			    nfs3_Errno(cache_status_gethandle);
 			rc = NFS_REQ_OK;
@@ -286,6 +294,7 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 
 		if (res->res_readdir3.status != NFS3_OK) {
 			rc = NFS_REQ_OK;
+			LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: failed ot put parent_dir_entry in cache.  goto out",__FILE__,__LINE__);
 			goto out;
 		}
 	}
@@ -303,6 +312,7 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 		/* Is this a retryable error */
 		if (nfs_RetryableError(cache_status)) {
 			rc = NFS_REQ_DROP;
+			LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: failed to cache, not retryable.  drop and goto out",__FILE__,__LINE__);
 			goto out;
 		}
 
@@ -310,7 +320,7 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 		nfs_SetPostOpAttr(dir_entry,
 				  &res->res_readdirplus3.READDIRPLUS3res_u.
 				  resfail.dir_attributes);
-
+		LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: cache failed. retry.  goto out",__FILE__,__LINE__);
 		goto out;
 	}
 
@@ -319,15 +329,17 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 		nfs_SetPostOpAttr(dir_entry,
 				  &res->res_readdir3.READDIR3res_u.resfail.
 				  dir_attributes);
+		LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: bad tracker error.  goto out",__FILE__,__LINE__);
 		goto out;
 	}
 
-	LogFullDebug(COMPONENT_NFS_READDIR,
+	LogEvent(COMPONENT_NFS_READDIR,
 		     "Readdirplus3 -> Call to cache_inode_readdir( cookie=%"
 		     PRIu64 ") -> num_entries = %u", cache_inode_cookie,
 		     num_entries);
 
 	if ((num_entries == 0) && (begin_cookie > 1)) {
+		LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: set post op attr",__FILE__,__LINE__);
 		res->res_readdirplus3.status = NFS3_OK;
 		res->res_readdirplus3.READDIRPLUS3res_u.resok.reply.entries =
 		    NULL;
@@ -341,6 +353,7 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 		       cookie_verifier,
 		       sizeof(cookieverf3));
 	} else {
+		LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: track enteries",__FILE__,__LINE__);
 		res->res_readdirplus3.READDIRPLUS3res_u.resok.reply.entries =
 		    tracker.entries;
 		res->res_readdirplus3.READDIRPLUS3res_u.resok.reply.eof =
@@ -371,6 +384,7 @@ int nfs3_readdirplus(nfs_arg_t *arg,
 	    && (tracker.entries != NULL))
 		free_entryplus3s(tracker.entries);
 
+	LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d: Normal exit %d", __FILE__,__LINE__,rc);
 	return rc;
 }				/* nfs3_readdirplus */
 
@@ -419,8 +433,11 @@ cache_inode_status_t nfs3_readdirplus_callback(void *opaque,
 	size_t namelen = strlen(cb_parms->name);
 	entryplus3 *ep3 = tracker->entries + tracker->count;
 
+	LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d Enter function",__FILE__,__LINE__);
+
 	if (tracker->count == tracker->total_entries) {
 		cb_parms->in_result = false;
+		LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d count equals entries.  CACHE_INODE_SUCCESS",__FILE__,__LINE__);
 		return CACHE_INODE_SUCCESS;
 	}
 	/* This is a pessimistic check, which assumes that we're going
@@ -433,6 +450,7 @@ cache_inode_status_t nfs3_readdirplus_callback(void *opaque,
 			tracker->error = NFS3ERR_TOOSMALL;
 
 		cb_parms->in_result = false;
+		LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d Not enough buffer space.  return CACHE_INODE_SUCCESS",__FILE__,__LINE__);
 		return CACHE_INODE_SUCCESS;
 	}
 
@@ -441,6 +459,7 @@ cache_inode_status_t nfs3_readdirplus_callback(void *opaque,
 	if (ep3->name == NULL) {
 		tracker->error = NFS3ERR_SERVERFAULT;
 		cb_parms->in_result = false;
+		LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d null name.  return NFS3ERR_SERVERFAULT, CACHE_INODE_SUCCESS",__FILE__,__LINE__);
 		return CACHE_INODE_SUCCESS;
 	}
 	ep3->cookie = cb_parms->cookie;
@@ -459,6 +478,7 @@ cache_inode_status_t nfs3_readdirplus_callback(void *opaque,
 			tracker->error = NFS3ERR_SERVERFAULT;
 			gsh_free(ep3->name);
 			cb_parms->in_result = false;
+			LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d return NFS3ERR_SERVERFAULT, CACHE_INODE_SUCCESS",__FILE__,__LINE__);
 			return CACHE_INODE_SUCCESS;
 		}
 
@@ -470,8 +490,12 @@ cache_inode_status_t nfs3_readdirplus_callback(void *opaque,
 			gsh_free(ep3->name_handle.post_op_fh3_u.handle.data.
 				 data_val);
 			cb_parms->in_result = false;
+			LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d nfs3_FSALToFhandle failed.  return NFS3ERR_SERVERFAULT, CACHE_INODE_SUCCESS",__FILE__,__LINE__);
 			return CACHE_INODE_SUCCESS;
 		}
+		log_handle("nfs3_readdirplus_callback: handle:",
+                 ep3->name_handle.post_op_fh3_u.handle.data.data_val,
+                 ep3->name_handle.post_op_fh3_u.handle.data.data_len);
 
 		/* Account for filehande + length + follows + nextentry */
 		tracker->mem_left -=
@@ -500,6 +524,7 @@ cache_inode_status_t nfs3_readdirplus_callback(void *opaque,
 	++(tracker->count);
 	cb_parms->in_result = true;
 
+	LogEvent(COMPONENT_NFS_READDIR, "ACH:%s:%d normal exit.  return CACHE_INODE_SUCCESS",__FILE__,__LINE__);
 	return CACHE_INODE_SUCCESS;
 }				/* nfs3_readdirplus_callback */
 

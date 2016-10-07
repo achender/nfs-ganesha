@@ -2573,3 +2573,16 @@ void reread_log_config()
 	report_config_errors(&err_type, NULL, config_errs_to_log);
 	config_Free(config_struct);
 }
+
+
+void log_handle(char* desc, char *handle, int handle_len){
+   char str_hdl[handle_len*2+1];
+   int i;
+
+   memset(str_hdl, 0, sizeof(str_hdl));
+   for(i = 0; i < handle_len; i++)
+      sprintf(&str_hdl[i*2], "%02X", *(handle+i));
+   
+   LogEvent(COMPONENT_FSAL,"ACH: desc:%s handle:[%s]", desc, str_hdl);
+}
+

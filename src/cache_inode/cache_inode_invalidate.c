@@ -73,6 +73,8 @@ cache_inode_invalidate(cache_entry_t *entry, uint32_t flags)
 {
 	cache_inode_status_t status = CACHE_INODE_SUCCESS;
 
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d: Enter function", __FILE__,__LINE__);
+
 	if (!(flags & CACHE_INODE_INVALIDATE_GOT_LOCK))
 		PTHREAD_RWLOCK_wrlock(&entry->attr_lock);
 
@@ -107,6 +109,7 @@ cache_inode_invalidate(cache_entry_t *entry, uint32_t flags)
 	/* Memory copying attributes with every call is expensive.
 	   Let's not do it.  */
 
+	LogEvent(COMPONENT_FSAL, "ACH:%s:%d: normal exit:%d", __FILE__,__LINE__, status);
 	return status;
 }				/* cache_inode_invalidate */
 
